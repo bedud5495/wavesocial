@@ -15,24 +15,27 @@ export function useUser(address: string | null | undefined) {
       try {
         const userData = await contract.getUser(address);
         
+        if (!userData.exists) {
+          return null;
+        }
+        
         let profile = undefined;
-        if (userData.profileHash) {
-          const fetchedProfile = await fetchProfileMetadata(userData.profileHash);
+        if (userData.profileIPFSHash) {
+          const fetchedProfile = await fetchProfileMetadata(userData.profileIPFSHash);
           if (fetchedProfile) profile = fetchedProfile;
         }
 
         return {
           address,
           username: userData.username,
-          profileHash: userData.profileHash,
+          profileHash: userData.profileIPFSHash,
           isVerified: userData.isVerified,
           postCount: userData.postCount,
           followerCount: userData.followerCount,
           followingCount: userData.followingCount,
           totalEarned: userData.totalEarned,
           referrer: userData.referrer,
-          referralCount: userData.referralCount,
-          registeredAt: userData.registeredAt,
+          verificationStake: userData.verificationStake,
           profile,
         };
       } catch (error) {
@@ -57,17 +60,21 @@ export function usePost(postId: bigint | null | undefined) {
       try {
         const postData = await contract.getPost(postId);
         
+        if (!postData.exists) {
+          return null;
+        }
+        
         let content = undefined;
-        if (postData.contentHash) {
-          const fetchedContent = await fetchPostContent(postData.contentHash);
+        if (postData.contentIPFSHash) {
+          const fetchedContent = await fetchPostContent(postData.contentIPFSHash);
           if (fetchedContent) content = fetchedContent;
         }
 
         let authorProfile = undefined;
         try {
           const authorData = await contract.getUser(postData.author);
-          if (authorData.profileHash) {
-            const fetchedProfile = await fetchProfileMetadata(authorData.profileHash);
+          if (authorData.exists && authorData.profileIPFSHash) {
+            const fetchedProfile = await fetchProfileMetadata(authorData.profileIPFSHash);
             if (fetchedProfile) authorProfile = fetchedProfile;
           }
         } catch (err) {
@@ -86,11 +93,12 @@ export function usePost(postId: bigint | null | undefined) {
         return {
           id: postData.id,
           author: postData.author,
-          contentHash: postData.contentHash,
+          contentIPFSHash: postData.contentIPFSHash,
           timestamp: postData.timestamp,
           likeCount: postData.likeCount,
           totalRewards: postData.totalRewards,
           isAd: postData.isAd,
+          exists: postData.exists,
           content,
           authorProfile,
           hasLiked,
@@ -115,10 +123,10 @@ export function usePosts(startId: number = 0, limit: number = 20) {
       if (!contract) return [];
 
       try {
-        const postCount = await contract.postCount();
-        const totalPosts = Number(postCount);
+        const nextPostId = await contract.nextPostId();
+        const totalPosts = Number(nextPostId) - 1;
         
-        if (totalPosts === 0) return [];
+        if (totalPosts <= 0) return [];
 
         const endId = Math.max(0, totalPosts - startId);
         const fetchStartId = Math.max(0, endId - limit);
@@ -129,17 +137,19 @@ export function usePosts(startId: number = 0, limit: number = 20) {
           try {
             const postData = await contract.getPost(BigInt(i));
             
+            if (!postData.exists) continue;
+            
             let content = undefined;
-            if (postData.contentHash) {
-              const fetchedContent = await fetchPostContent(postData.contentHash);
+            if (postData.contentIPFSHash) {
+              const fetchedContent = await fetchPostContent(postData.contentIPFSHash);
               if (fetchedContent) content = fetchedContent;
             }
 
             let authorProfile = undefined;
             try {
               const authorData = await contract.getUser(postData.author);
-              if (authorData.profileHash) {
-                const fetchedProfile = await fetchProfileMetadata(authorData.profileHash);
+              if (authorData.exists && authorData.profileIPFSHash) {
+                const fetchedProfile = await fetchProfileMetadata(authorData.profileIPFSHash);
                 if (fetchedProfile) authorProfile = fetchedProfile;
               }
             } catch (err) {
@@ -149,7 +159,7 @@ export function usePosts(startId: number = 0, limit: number = 20) {
             let hasLiked = false;
             if (address) {
               try {
-                hasLiked = await contract.hasLikedPost(address, BigInt(i));
+                hasLiked = await contract.hasLikedPost(BigInt(i), address);
               } catch (err) {
                 console.error('Error checking like:', err);
               }
@@ -158,11 +168,12 @@ export function usePosts(startId: number = 0, limit: number = 20) {
             posts.push({
               id: postData.id,
               author: postData.author,
-              contentHash: postData.contentHash,
+              contentIPFSHash: postData.contentIPFSHash,
               timestamp: postData.timestamp,
               likeCount: postData.likeCount,
               totalRewards: postData.totalRewards,
               isAd: postData.isAd,
+              exists: postData.exists,
               content,
               authorProfile,
               hasLiked,
@@ -198,8 +209,8 @@ export function useUserPosts(userAddress: string | null | undefined) {
         
         if (userPostCount === 0) return [];
 
-        const postCount = await contract.postCount();
-        const totalPosts = Number(postCount);
+        const nextPostId = await contract.nextPostId();
+        const totalPosts = Number(nextPostId) - 1;
         
         const posts: EnrichedPost[] = [];
         
@@ -207,20 +218,20 @@ export function useUserPosts(userAddress: string | null | undefined) {
           try {
             const postData = await contract.getPost(BigInt(i));
             
-            if (postData.author.toLowerCase() !== userAddress.toLowerCase()) {
+            if (!postData.exists || postData.author.toLowerCase() !== userAddress.toLowerCase()) {
               continue;
             }
 
             let content = undefined;
-            if (postData.contentHash) {
-              const fetchedContent = await fetchPostContent(postData.contentHash);
+            if (postData.contentIPFSHash) {
+              const fetchedContent = await fetchPostContent(postData.contentIPFSHash);
               if (fetchedContent) content = fetchedContent;
             }
 
             let authorProfile = undefined;
             try {
-              if (userData.profileHash) {
-                const fetchedProfile = await fetchProfileMetadata(userData.profileHash);
+              if (userData.exists && userData.profileIPFSHash) {
+                const fetchedProfile = await fetchProfileMetadata(userData.profileIPFSHash);
                 if (fetchedProfile) authorProfile = fetchedProfile;
               }
             } catch (err) {
@@ -230,7 +241,7 @@ export function useUserPosts(userAddress: string | null | undefined) {
             let hasLiked = false;
             if (currentUser) {
               try {
-                hasLiked = await contract.hasLikedPost(currentUser, BigInt(i));
+                hasLiked = await contract.hasLikedPost(BigInt(i), currentUser);
               } catch (err) {
                 console.error('Error checking like:', err);
               }
@@ -239,11 +250,12 @@ export function useUserPosts(userAddress: string | null | undefined) {
             posts.push({
               id: postData.id,
               author: postData.author,
-              contentHash: postData.contentHash,
+              contentIPFSHash: postData.contentIPFSHash,
               timestamp: postData.timestamp,
               likeCount: postData.likeCount,
               totalRewards: postData.totalRewards,
               isAd: postData.isAd,
+              exists: postData.exists,
               content,
               authorProfile,
               hasLiked,

@@ -13,12 +13,15 @@ export default function Analytics() {
       if (!contract) return { userCount: 0n, postCount: 0n };
       
       try {
-        const [userCount, postCount] = await Promise.all([
-          contract.userCount(),
-          contract.postCount(),
+        const [totalUsers, nextPostId] = await Promise.all([
+          contract.totalUsers(),
+          contract.nextPostId(),
         ]);
 
-        return { userCount, postCount };
+        return { 
+          userCount: totalUsers, 
+          postCount: nextPostId > 0n ? nextPostId - 1n : 0n 
+        };
       } catch (error) {
         console.error('Error fetching stats:', error);
         return { userCount: 0n, postCount: 0n };
