@@ -5,9 +5,9 @@ import { z } from "zod";
 // ============================================================================
 
 export interface User {
-  walletAddress: string;
+  address: string;
   username: string;
-  profileIPFSHash: string;
+  profileHash: string;
   referrer: string;
   isVerified: boolean;
   verificationStake: bigint;
@@ -15,7 +15,6 @@ export interface User {
   followerCount: bigint;
   followingCount: bigint;
   postCount: bigint;
-  exists: boolean;
 }
 
 export interface Post {

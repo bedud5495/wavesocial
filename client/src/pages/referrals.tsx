@@ -13,9 +13,12 @@ export default function Referrals() {
   const { address, isConnected } = useWeb3();
   const { data: user, isLoading } = useUser(address);
   const [copied, setCopied] = useState(false);
-  const referralUrl = address ? `${window.location.origin}/?ref=${address}` : '';
+  
+  const isRegistered = user && user.username;
+  const referralUrl = isRegistered ? `${window.location.origin}/?ref=${address}` : '';
 
   const copyToClipboard = () => {
+    if (!referralUrl) return;
     navigator.clipboard.writeText(referralUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -42,25 +45,44 @@ export default function Referrals() {
         <CardHeader>
           <CardTitle>Your Referral Link</CardTitle>
           <CardDescription>
-            Share this link to earn rewards when people sign up
+            {isRegistered 
+              ? 'Share this link to earn rewards when people sign up'
+              : 'Complete your registration to get your referral link'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={referralUrl}
-              readOnly
-              className="font-mono text-sm"
-              data-testid="input-referral-url"
-            />
-            <Button
-              variant="outline"
-              onClick={copyToClipboard}
-              data-testid="button-copy-referral"
-            >
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </Button>
-          </div>
+          {!isConnected ? (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground text-sm">Connect your wallet to view your referral link</p>
+            </div>
+          ) : isLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : !isRegistered ? (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-muted-foreground text-sm">
+                You need to register first to get your referral link
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Connect your wallet and complete registration to start earning referral rewards
+              </p>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                value={referralUrl}
+                readOnly
+                className="font-mono text-sm"
+                data-testid="input-referral-url"
+              />
+              <Button
+                variant="outline"
+                onClick={copyToClipboard}
+                data-testid="button-copy-referral"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
 
           <div className="bg-muted p-4 rounded-md space-y-2">
             <h3 className="font-semibold text-sm">5-Level Referral System</h3>
@@ -98,21 +120,11 @@ export default function Referrals() {
               <Skeleton className="h-4 w-1/2" />
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Referrals</span>
-                <Badge variant="secondary" className="font-mono" data-testid="badge-referral-count">
-                  {user?.referralCount?.toString() || '0'}
-                </Badge>
-              </div>
-              {Number(user?.referralCount || 0) === 0 && (
-                <div className="text-center py-4 space-y-2" data-testid="empty-referrals">
-                  <p className="text-muted-foreground">No referrals yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    Share your referral link to start earning rewards
-                  </p>
-                </div>
-              )}
+            <div className="text-center py-8 space-y-2" data-testid="empty-referrals">
+              <p className="text-muted-foreground">Share your link to start earning referral rewards</p>
+              <p className="text-xs text-muted-foreground">
+                Your referrer will earn tokens across 5 levels when your referrals join
+              </p>
             </div>
           )}
         </CardContent>

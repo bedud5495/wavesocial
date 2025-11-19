@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/ui/app-sidebar";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { Web3Provider } from "@/contexts/Web3Context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { RegistrationDialog } from "@/components/web3/RegistrationDialog";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import Referrals from "@/pages/referrals";
@@ -52,6 +53,7 @@ function App() {
                 </div>
               </div>
             </SidebarProvider>
+            <RegistrationDialog />
             <Toaster />
           </TooltipProvider>
         </Web3Provider>
