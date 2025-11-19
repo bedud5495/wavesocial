@@ -19,17 +19,35 @@ import type { ProfileMetadata } from '@shared/schema';
 
 export function RegistrationDialog() {
   const { address, isConnected } = useWeb3();
-  const { data: user, isLoading: isLoadingUser } = useUser(address);
+  const { data: user, isLoading: isLoadingUser, error: userError } = useUser(address);
   const { registerUser, isLoading: isRegistering } = useSocialWave();
   
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [referrerAddress, setReferrerAddress] = useState<string>('');
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
+
+  useEffect(() => {
+    if (address) {
+      const registeredKey = `swave_registered_${address.toLowerCase()}`;
+      const isRegistered = localStorage.getItem(registeredKey) === 'true';
+      setIsAlreadyRegistered(isRegistered);
+    }
+  }, [address]);
 
   useEffect(() => {
     if (isConnected && !isLoadingUser && address) {
-      if (!user || !user.username) {
+      if (isAlreadyRegistered) {
+        setOpen(false);
+        return;
+      }
+
+      if (user && user.username) {
+        const registeredKey = `swave_registered_${address.toLowerCase()}`;
+        localStorage.setItem(registeredKey, 'true');
+        setOpen(false);
+      } else if (!user && !userError) {
         setOpen(true);
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -37,15 +55,13 @@ export function RegistrationDialog() {
         if (refParam && refParam !== address) {
           setReferrerAddress(refParam);
         }
-      } else {
-        setOpen(false);
       }
     }
-  }, [isConnected, isLoadingUser, user, address]);
+  }, [isConnected, isLoadingUser, user, userError, address, isAlreadyRegistered]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
+    if (!username.trim() || !address) return;
 
     try {
       const profileMetadata: ProfileMetadata = {
@@ -58,9 +74,20 @@ export function RegistrationDialog() {
       };
 
       await registerUser(username, profileMetadata, referrerAddress || undefined);
+      
+      const registeredKey = `swave_registered_${address.toLowerCase()}`;
+      localStorage.setItem(registeredKey, 'true');
+      setIsAlreadyRegistered(true);
       setOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
+      
+      if (error?.reason?.includes('already registered') || error?.message?.includes('already registered')) {
+        const registeredKey = `swave_registered_${address.toLowerCase()}`;
+        localStorage.setItem(registeredKey, 'true');
+        setIsAlreadyRegistered(true);
+        setOpen(false);
+      }
     }
   };
 
@@ -68,7 +95,7 @@ export function RegistrationDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
-      if (user?.username) {
+      if (user?.username || isAlreadyRegistered) {
         setOpen(newOpen);
       }
     }}>
@@ -79,7 +106,9 @@ export function RegistrationDialog() {
             Welcome to SWAVE
           </DialogTitle>
           <DialogDescription>
-            Create your profile to start earning tokens and connecting with others
+            {userError 
+              ? "Having trouble loading your profile. If you're already registered, try refreshing the page."
+              : "Create your profile to start earning tokens and connecting with others"}
           </DialogDescription>
         </DialogHeader>
 
@@ -132,6 +161,17 @@ export function RegistrationDialog() {
           )}
 
           <div className="flex gap-2 pt-4">
+            {userError && (
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setOpen(false)}
+                data-testid="button-skip"
+              >
+                Skip for Now
+              </Button>
+            )}
             <Button
               type="submit"
               className="flex-1"
