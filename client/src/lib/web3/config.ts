@@ -1,10 +1,10 @@
 export const CHAIN_CONFIG = {
-  chainId: 5611,
+  chainId: parseInt(import.meta.env.VITE_CHAIN_ID || '5611'),
   chainIdHex: '0x15eb',
   name: 'opBNB Testnet',
   currency: 'tBNB',
   explorerUrl: 'https://opbnb-testnet.bscscan.com',
-  rpcUrl: 'https://opbnb-testnet-rpc.bnbchain.org',
+  rpcUrl: import.meta.env.VITE_RPC_URL || 'https://opbnb-testnet-rpc.bnbchain.org',
 };
 
 export const CONTRACT_ADDRESSES = {
@@ -13,9 +13,9 @@ export const CONTRACT_ADDRESSES = {
 };
 
 export const IPFS_CONFIG = {
+  apiUrl: import.meta.env.VITE_IPFS_API_URL || 'https://5001.skyswap.online',
+  gatewayUrl: import.meta.env.VITE_IPFS_GATEWAY_URL || 'https://8080.skyswap.online/ipfs/',
   pinataJWT: import.meta.env.VITE_PINATA_JWT || '',
-  pinataGateway: 'https://gateway.pinata.cloud/ipfs/',
-  publicGateway: 'https://ipfs.io/ipfs/',
 };
 
 export const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';

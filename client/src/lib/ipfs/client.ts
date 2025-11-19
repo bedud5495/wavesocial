@@ -7,11 +7,19 @@ export class IPFSClient {
   private client: any;
 
   private constructor() {
-    this.client = create({
-      host: 'ipfs.infura.io',
-      port: 5001,
-      protocol: 'https',
-    });
+    const apiUrl = IPFS_CONFIG.apiUrl;
+    
+    try {
+      const url = new URL(apiUrl);
+      this.client = create({
+        url: apiUrl,
+      });
+    } catch (error) {
+      console.error('Invalid IPFS API URL, using default:', error);
+      this.client = create({
+        url: 'https://ipfs.infura.io:5001',
+      });
+    }
   }
 
   static getInstance(): IPFSClient {
@@ -45,7 +53,10 @@ export class IPFSClient {
 
   async fetchJSON<T>(ipfsHash: string): Promise<T | null> {
     try {
-      const response = await fetch(`${IPFS_CONFIG.publicGateway}${ipfsHash}`);
+      const gatewayUrl = IPFS_CONFIG.gatewayUrl.endsWith('/') 
+        ? IPFS_CONFIG.gatewayUrl 
+        : `${IPFS_CONFIG.gatewayUrl}/`;
+      const response = await fetch(`${gatewayUrl}${ipfsHash}`);
       if (!response.ok) throw new Error('Failed to fetch from IPFS');
       return await response.json();
     } catch (error) {
@@ -55,10 +66,10 @@ export class IPFSClient {
   }
 
   getGatewayUrl(ipfsHash: string): string {
-    if (IPFS_CONFIG.pinataJWT && IPFS_CONFIG.pinataGateway) {
-      return `${IPFS_CONFIG.pinataGateway}${ipfsHash}`;
-    }
-    return `${IPFS_CONFIG.publicGateway}${ipfsHash}`;
+    const gatewayUrl = IPFS_CONFIG.gatewayUrl.endsWith('/') 
+      ? IPFS_CONFIG.gatewayUrl 
+      : `${IPFS_CONFIG.gatewayUrl}/`;
+    return `${gatewayUrl}${ipfsHash}`;
   }
 }
 
