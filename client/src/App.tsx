@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { Web3Provider } from "@/contexts/Web3Context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { RegistrationDialog } from "@/components/web3/RegistrationDialog";
+import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import Referrals from "@/pages/referrals";
@@ -19,7 +20,8 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={Landing} />
+      <Route path="/feed" component={Home} />
       <Route path="/profile" component={Profile} />
       <Route path="/profile/:address" component={Profile} />
       <Route path="/referrals" component={Referrals} />

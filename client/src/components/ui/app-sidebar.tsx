@@ -17,7 +17,7 @@ import { CreatePost } from '@/components/posts/CreatePost';
 import { useWeb3 } from '@/contexts/Web3Context';
 
 const menuItems = [
-  { title: 'Home', icon: Home, url: '/' },
+  { title: 'Feed', icon: Home, url: '/feed' },
   { title: 'Profile', icon: User, url: '/profile' },
   { title: 'Referrals', icon: Users, url: '/referrals' },
   { title: 'Analytics', icon: TrendingUp, url: '/analytics' },
