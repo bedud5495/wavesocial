@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./SWAVEToken.sol";
-
+//new
 contract SocialWave is ReentrancyGuard, Ownable {
     SWAVEToken public swaveToken;
     
