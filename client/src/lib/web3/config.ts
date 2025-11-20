@@ -1,24 +1,24 @@
 export const CHAIN_CONFIG = {
-  chainId: parseInt(import.meta.env.VITE_CHAIN_ID || '5611'),
+  chainId: 5611,
   chainIdHex: '0x15eb',
   name: 'opBNB Testnet',
   currency: 'tBNB',
   explorerUrl: 'https://opbnb-testnet.bscscan.com',
-  rpcUrl: import.meta.env.VITE_RPC_URL || 'https://opbnb-testnet-rpc.bnbchain.org',
+  rpcUrl: 'https://opbnb-testnet-rpc.bnbchain.org',
 };
 
 export const CONTRACT_ADDRESSES = {
-  swaveToken: import.meta.env.VITE_SWAVE_TOKEN_ADDRESS || '',
-  socialWave: import.meta.env.VITE_SOCIAL_WAVE_ADDRESS || '',
+  swaveToken: '0xc759cdB340817Da6bBe024aA76917D7d5fDe9bC5',
+  socialWave: '0x037599739797faAA042Bf9b2238Cc85BA20C5bB7',
 };
 
 export const IPFS_CONFIG = {
-  apiUrl: import.meta.env.VITE_IPFS_API_URL || 'https://5001.skyswap.online',
-  gatewayUrl: import.meta.env.VITE_IPFS_GATEWAY_URL || 'https://8080.skyswap.online/ipfs/',
-  pinataJWT: import.meta.env.VITE_PINATA_JWT || '',
+  apiUrl: 'https://5001.skyswap.online',
+  gatewayUrl: 'https://8080.skyswap.online/ipfs/',
+  pinataJWT: '',
 };
 
-export const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
+export const WALLETCONNECT_PROJECT_ID = 'your_walletconnect_project_id_here';
 
 export const TOKEN_REWARDS = {
   POST_CREATION: '1000',
