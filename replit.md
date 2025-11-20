@@ -8,7 +8,9 @@ The application features a React TypeScript frontend with Tailwind CSS and Shadc
 
 **Latest Update (Nov 20, 2025)**: 
 - Contract redeployed to address 0x037599739797faAA042Bf9b2238Cc85BA20C5bB7 with bug fixes
-- Added Settings page to help users clear registration cache and view contract information
+- Added Settings page features:
+  - Clear registration cache and view contract information
+  - Fund contract functionality for owner to add SWAVE tokens to reward pool
 - Implemented localStorage caching system for improved performance:
   - Data fetched from blockchain is cached locally
   - Cache refreshes every 1 minute automatically
@@ -19,6 +21,12 @@ The application features a React TypeScript frontend with Tailwind CSS and Shadc
   - Contract call errors no longer logged to console
   - Added global error handlers to suppress opBNB RPC network errors
   - Console now completely clean with zero error spam
+- Referral system improvements:
+  - Referrer stored in sessionStorage when users visit referral links
+  - Automatic validation of referrer addresses (Ethereum address format)
+  - Default referrer (0xe70D6c12996Fb65FDd92B662fBb54FfC1E94f31a) used when no valid ref provided
+  - Self-referral prevention with automatic fallback to default
+  - Stale referrer cleanup when invalid or missing ref parameters
 
 ## User Preferences
 
