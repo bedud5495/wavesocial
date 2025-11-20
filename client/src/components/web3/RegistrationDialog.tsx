@@ -15,12 +15,14 @@ import { UserPlus, Gift } from 'lucide-react';
 import { useSocialWave } from '@/hooks/web3/useSocialWave';
 import { useUser } from '@/hooks/web3/useContractData';
 import { useWeb3 } from '@/contexts/Web3Context';
+import { useToast } from '@/hooks/use-toast';
 import type { ProfileMetadata } from '@shared/schema';
 
 export function RegistrationDialog() {
   const { address, isConnected } = useWeb3();
   const { data: user, isLoading: isLoadingUser, error: userError } = useUser(address);
   const { registerUser, isLoading: isRegistering } = useSocialWave();
+  const { toast } = useToast();
   
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState('');
@@ -82,11 +84,18 @@ export function RegistrationDialog() {
     } catch (error: any) {
       console.error('Registration failed:', error);
       
-      if (error?.reason?.includes('already registered') || error?.message?.includes('already registered')) {
+      const errorText = (error?.reason || error?.message || error?.shortMessage || '').toLowerCase();
+      
+      if (errorText.includes('already registered') || errorText.includes('user already registered')) {
         const registeredKey = `swave_registered_${address.toLowerCase()}`;
         localStorage.setItem(registeredKey, 'true');
         setIsAlreadyRegistered(true);
         setOpen(false);
+        
+        toast({
+          title: 'Already Registered',
+          description: 'Your profile is already set up! You can start using SWAVE.',
+        });
       }
     }
   };
@@ -107,7 +116,7 @@ export function RegistrationDialog() {
           </DialogTitle>
           <DialogDescription>
             {userError 
-              ? "Having trouble loading your profile. If you're already registered, try refreshing the page."
+              ? "Having trouble loading your profile. If you're already registered, click 'I'm Already Registered' below."
               : "Create your profile to start earning tokens and connecting with others"}
           </DialogDescription>
         </DialogHeader>
@@ -166,10 +175,21 @@ export function RegistrationDialog() {
                 type="button"
                 variant="outline"
                 className="flex-1"
-                onClick={() => setOpen(false)}
-                data-testid="button-skip"
+                onClick={() => {
+                  if (address) {
+                    const registeredKey = `swave_registered_${address.toLowerCase()}`;
+                    localStorage.setItem(registeredKey, 'true');
+                    setIsAlreadyRegistered(true);
+                    setOpen(false);
+                    toast({
+                      title: 'Marked as Registered',
+                      description: 'If you have issues, please refresh the page.',
+                    });
+                  }
+                }}
+                data-testid="button-already-registered"
               >
-                Skip for Now
+                I'm Already Registered
               </Button>
             )}
             <Button
