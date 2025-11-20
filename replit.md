@@ -6,6 +6,8 @@ SWAVE is a decentralized social media platform built on the opBNB testnet (BSC L
 
 The application features a React TypeScript frontend with Tailwind CSS and Shadcn UI components, smart contracts written in Solidity, and IPFS storage for content and metadata. Users connect via Web3 wallets (MetaMask) to interact with on-chain social features while earning SWAVE tokens for platform activity.
 
+**Latest Update (Nov 20, 2025)**: Contract redeployed to address 0x037599739797faAA042Bf9b2238Cc85BA20C5bB7 with bug fixes. Added Settings page to help users clear registration cache and view contract information.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -72,6 +74,14 @@ Preferred communication style: Simple, everyday language.
 **Contract Interaction**: Custom React hooks (`useSocialWave`, `useContract`, `useContractData`) abstract contract calls with loading states and error handling.
 
 **Network Management**: Automatic detection of chain mismatch with prompts to switch to opBNB testnet (Chain ID 5611).
+
+## Deployed Contracts
+
+**Current Deployment (Nov 20, 2025)**:
+- **SocialWave Contract**: 0x037599739797faAA042Bf9b2238Cc85BA20C5bB7
+- **SWAVE Token Contract**: 0xc759cdB340817Da6bBe024aA76917D7d5fDe9bC5
+
+**Previous Deployment** (deprecated): 0x59dae4Eb13E249a86d2F51D36C12caC3903e3612
 
 ## External Dependencies
 

@@ -13,6 +13,7 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import Referrals from "@/pages/referrals";
 import Analytics from "@/pages/analytics";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/profile/:address" component={Profile} />
       <Route path="/referrals" component={Referrals} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

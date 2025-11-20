@@ -21,6 +21,7 @@ const menuItems = [
   { title: 'Profile', icon: User, url: '/profile' },
   { title: 'Referrals', icon: Users, url: '/referrals' },
   { title: 'Analytics', icon: TrendingUp, url: '/analytics' },
+  { title: 'Settings', icon: Settings, url: '/settings' },
 ];
 
 export function AppSidebar() {
@@ -65,16 +66,12 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="text-xs text-muted-foreground px-4">
+          <p className="font-semibold">Contract Address:</p>
+          <p className="font-mono break-all">
+            {import.meta.env.VITE_SOCIAL_WAVE_ADDRESS || 'Not configured'}
+          </p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
