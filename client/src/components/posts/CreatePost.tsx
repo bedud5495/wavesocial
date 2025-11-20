@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { ImagePlus, Coins, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ImagePlus, Coins, Loader2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { TOKEN_REWARDS } from '@/lib/web3/config';
+import { TOKEN_REWARDS, IPFS_CONFIG } from '@/lib/web3/config';
+import { uploadImage } from '@/lib/ipfs/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface CreatePostProps {
   onSubmit: (content: string, images: string[], isAd: boolean) => Promise<void>;
@@ -18,6 +20,61 @@ export function CreatePost({ onSubmit, isSubmitting }: CreatePostProps) {
   const [content, setContent] = useState('');
   const [isAd, setIsAd] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImage(true);
+    try {
+      const file = files[0];
+      
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please select an image or video file',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Maximum file size is 50MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const cid = await uploadImage(file);
+      setSelectedImages([...selectedImages, cid]);
+      
+      toast({
+        title: 'Upload successful',
+        description: 'Your media has been uploaded to IPFS',
+      });
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload media to IPFS. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -64,11 +121,68 @@ export function CreatePost({ onSubmit, isSubmitting }: CreatePostProps) {
             </Badge>
           </div>
 
+          {selectedImages.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm">Uploaded Media</Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedImages.map((cid, index) => {
+                  const gatewayUrl = IPFS_CONFIG.gatewayUrl.endsWith('/') 
+                    ? IPFS_CONFIG.gatewayUrl 
+                    : `${IPFS_CONFIG.gatewayUrl}/`;
+                  return (
+                    <div key={index} className="relative group">
+                      <img
+                        src={`${gatewayUrl}${cid}`}
+                        alt="Upload preview"
+                        className="h-20 w-20 object-cover rounded border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeImage(index)}
+                        data-testid={`button-remove-image-${index}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-t pt-4">
-            <Button variant="outline" size="sm" disabled data-testid="button-add-image">
-              <ImagePlus className="h-4 w-4 mr-2" />
-              Add Image (IPFS)
-            </Button>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                data-testid="input-file-upload"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingImage || selectedImages.length >= 4}
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="button-add-image"
+              >
+                {uploadingImage ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    Add Media
+                  </>
+                )}
+              </Button>
+            </div>
 
             <div className="flex items-center gap-2">
               <Switch

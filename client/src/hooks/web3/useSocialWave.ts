@@ -89,9 +89,24 @@ export function useSocialWave() {
       return receipt;
     } catch (error: any) {
       console.error('Create post error:', error);
+      
+      let errorMessage = error.shortMessage || error.message || 'Transaction failed';
+      
+      const errorText = (error.reason || error.message || error.shortMessage || '').toLowerCase();
+      
+      if (errorText.includes('insufficient post rewards')) {
+        errorMessage = 'The contract needs SWAVE tokens to pay rewards. Please contact the contract owner to fund the contract.';
+      } else if (errorText.includes('user not registered')) {
+        errorMessage = 'You need to register first. Please complete your profile.';
+      } else if (error.code === 'ACTION_REJECTED' || errorText.includes('user rejected')) {
+        errorMessage = 'Transaction was cancelled';
+      } else if (errorText.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds to pay for gas. Please add more tBNB to your wallet.';
+      }
+      
       toast({
         title: 'Failed to Create Post',
-        description: error.message || 'Transaction failed',
+        description: errorMessage,
         variant: 'destructive',
       });
       throw error;

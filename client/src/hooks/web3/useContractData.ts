@@ -128,12 +128,15 @@ export function usePosts(startId: number = 0, limit: number = 20) {
         
         if (totalPosts <= 0) return [];
 
-        const endId = Math.max(0, totalPosts - startId);
-        const fetchStartId = Math.max(0, endId - limit);
+        const effectiveEnd = totalPosts - startId;
+        if (effectiveEnd <= 0) return [];
+        
+        const endId = effectiveEnd;
+        const fetchStartId = Math.max(1, endId - limit + 1);
         
         const posts: EnrichedPost[] = [];
         
-        for (let i = endId - 1; i >= fetchStartId; i--) {
+        for (let i = endId; i >= fetchStartId; i--) {
           try {
             const postData = await contract.getPost(BigInt(i));
             

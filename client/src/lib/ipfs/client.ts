@@ -75,6 +75,10 @@ export class IPFSClient {
 
 export const ipfsClient = IPFSClient.getInstance();
 
+export async function uploadImage(file: File): Promise<string> {
+  return ipfsClient.uploadImage(file);
+}
+
 export async function uploadProfileMetadata(metadata: ProfileMetadata): Promise<string> {
   return ipfsClient.uploadJSON(metadata);
 }
