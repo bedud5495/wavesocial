@@ -10,6 +10,7 @@ interface Web3ContextType extends WalletState {
   disconnect: () => void;
   switchNetwork: () => Promise<void>;
   refreshBalance: () => Promise<void>;
+  swaveBalance: string;
 }
 
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
@@ -44,7 +45,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       const decimals = await tokenContract.decimals();
       setSwaveBalance(formatUnits(balance, decimals));
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      // Silently handle RPC errors - balance will retry automatically
       setSwaveBalance('0');
     }
   };

@@ -25,18 +25,16 @@ export class LocalCache {
       localStorage.setItem(cacheKey, serialized);
     } catch (error) {
       if (error instanceof Error && error.name === 'QuotaExceededError') {
-        console.warn('localStorage quota exceeded, clearing old cache');
         this.cleanOldData();
         try {
           const cacheKey = CACHE_PREFIX + key;
           const item: CacheItem<T> = { data, timestamp: Date.now() };
           localStorage.setItem(cacheKey, JSON.stringify(item));
         } catch (retryError) {
-          console.error('Failed to save to cache after cleanup:', retryError);
+          // Silently fail - cache is optional for performance only
         }
-      } else {
-        console.error('Error saving to cache:', error);
       }
+      // Silently fail - cache is optional for performance only
     }
   }
 
@@ -57,7 +55,7 @@ export class LocalCache {
 
       return item.data;
     } catch (error) {
-      console.error('Error reading from cache:', error);
+      // Silently fail - cache is optional
       return null;
     }
   }
@@ -67,7 +65,7 @@ export class LocalCache {
       const cacheKey = CACHE_PREFIX + key;
       localStorage.removeItem(cacheKey);
     } catch (error) {
-      console.error('Error removing from cache:', error);
+      // Silently fail
     }
   }
 
@@ -95,12 +93,8 @@ export class LocalCache {
       }
 
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      if (keysToRemove.length > 0) {
-        console.log(`Cleaned ${keysToRemove.length} old cache items`);
-      }
     } catch (error) {
-      console.error('Error cleaning cache:', error);
+      // Silently fail
     }
   }
 
@@ -115,7 +109,7 @@ export class LocalCache {
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
     } catch (error) {
-      console.error('Error clearing cache:', error);
+      // Silently fail
     }
   }
 }

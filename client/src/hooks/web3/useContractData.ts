@@ -49,7 +49,7 @@ export function useUser(address: string | null | undefined) {
         LocalCache.set(cacheKey, enrichedUser);
         return enrichedUser;
       } catch (error) {
-        console.error('Error fetching user:', error);
+        // Silently handle RPC errors
         return null;
       }
     },
@@ -88,7 +88,7 @@ export function usePost(postId: bigint | null | undefined) {
             if (fetchedProfile) authorProfile = fetchedProfile;
           }
         } catch (err) {
-          console.error('Error fetching author profile:', err);
+          // Silently handle
         }
 
         let hasLiked = false;
@@ -96,7 +96,7 @@ export function usePost(postId: bigint | null | undefined) {
           try {
             hasLiked = await contract.hasLikedPost(address, postId);
           } catch (err) {
-            console.error('Error checking like status:', err);
+            // Silently handle
           }
         }
 
@@ -114,7 +114,7 @@ export function usePost(postId: bigint | null | undefined) {
           hasLiked,
         };
       } catch (error) {
-        console.error('Error fetching post:', error);
+        // Silently handle RPC errors
         return null;
       }
     },
@@ -172,7 +172,7 @@ export function usePosts(startId: number = 0, limit: number = 50) {
                 if (fetchedProfile) authorProfile = fetchedProfile;
               }
             } catch (err) {
-              console.error('Error fetching author:', err);
+              // Silently handle
             }
 
             let hasLiked = false;
@@ -180,7 +180,7 @@ export function usePosts(startId: number = 0, limit: number = 50) {
               try {
                 hasLiked = await contract.hasLikedPost(BigInt(i), address);
               } catch (err) {
-                console.error('Error checking like:', err);
+                // Silently handle
               }
             }
 
@@ -198,14 +198,14 @@ export function usePosts(startId: number = 0, limit: number = 50) {
               hasLiked,
             });
           } catch (error) {
-            console.error(`Error fetching post ${i}:`, error);
+            // Silently handle - continue fetching other posts
           }
         }
 
         LocalCache.set(cacheKey, posts);
         return posts;
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        // Silently handle RPC errors
         return [];
       }
     },
@@ -255,7 +255,7 @@ export function useUserPosts(userAddress: string | null | undefined) {
                 if (fetchedProfile) authorProfile = fetchedProfile;
               }
             } catch (err) {
-              console.error('Error fetching profile:', err);
+              // Silently handle
             }
 
             let hasLiked = false;
@@ -263,7 +263,7 @@ export function useUserPosts(userAddress: string | null | undefined) {
               try {
                 hasLiked = await contract.hasLikedPost(BigInt(i), currentUser);
               } catch (err) {
-                console.error('Error checking like:', err);
+                // Silently handle
               }
             }
 
@@ -283,13 +283,13 @@ export function useUserPosts(userAddress: string | null | undefined) {
 
             if (posts.length >= userPostCount) break;
           } catch (error) {
-            console.error(`Error fetching post ${i}:`, error);
+            // Silently handle - continue fetching other posts
           }
         }
 
         return posts;
       } catch (error) {
-        console.error('Error fetching user posts:', error);
+        // Silently handle RPC errors
         return [];
       }
     },
@@ -310,7 +310,7 @@ export function useIsFollowing(targetAddress: string | null | undefined) {
       try {
         return await contract.isFollowing(address, targetAddress);
       } catch (error) {
-        console.error('Error checking follow status:', error);
+        // Silently handle RPC errors
         return false;
       }
     },
