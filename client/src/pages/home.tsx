@@ -20,7 +20,7 @@ export default function Home() {
   const { isConnected, address } = useWeb3();
   
   // Enhanced hooks
-  const { getPosts: getCachedPosts, savePosts: saveToCache } = useLocalCache();
+  const { getPosts: getCachedPosts, savePosts: saveToCache, clearCache } = useLocalCache();
   const {
     addOptimisticPost,
     addOptimisticLike,
@@ -31,6 +31,7 @@ export default function Home() {
   } = useOptimisticUpdates();
 
   const [mergedPosts, setMergedPosts] = useState<Post[]>([]);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // Background sync
   useBackgroundSync({
@@ -59,14 +60,14 @@ export default function Home() {
     }
   );
 
-  // Deduplicate posts - remove cached posts that exist in on-chain data
+  // Improved deduplication logic
   const deduplicatedPosts = useMemo(() => {
     if (posts.length === 0) return [];
     
     const onChainPostIds = new Set(posts.map(post => post.id.toString()));
+    const cachedPosts = getCachedPosts();
     
     // Only include cached posts that don't exist in on-chain data
-    const cachedPosts = getCachedPosts();
     const uniqueCachedPosts = cachedPosts.filter(cachedPost => 
       !onChainPostIds.has(cachedPost.id.toString())
     );
@@ -74,20 +75,69 @@ export default function Home() {
     return [...posts, ...uniqueCachedPosts];
   }, [posts, getCachedPosts]);
 
-  // Merge real posts with optimistic updates
+  // Merge real posts with optimistic updates - improved logic
   useEffect(() => {
-    if (deduplicatedPosts.length > 0) {
+    // If we have on-chain posts, use them (with deduplication)
+    if (posts.length > 0) {
       const merged = getMergedPosts(deduplicatedPosts);
       setMergedPosts(merged);
       
       // Update cache with fresh on-chain data only (no duplicates)
       saveToCache(posts);
-    } else if (getCachedPosts().length > 0) {
-      // Only show cached posts if no on-chain data
+      
+      // Clear cached posts that are now available on-chain
+      const cachedPosts = getCachedPosts();
+      const onChainIds = new Set(posts.map(p => p.id.toString()));
+      const remainingCachedPosts = cachedPosts.filter(p => !onChainIds.has(p.id.toString()));
+      
+      if (remainingCachedPosts.length !== cachedPosts.length) {
+        saveToCache(remainingCachedPosts);
+      }
+    } 
+    // Only use cached posts if we have no on-chain data AND it's not loading
+    else if (!isLoading && getCachedPosts().length > 0) {
       const cached = getCachedPosts();
-      setMergedPosts(cached);
+      const merged = getMergedPosts(cached);
+      setMergedPosts(merged);
     }
-  }, [deduplicatedPosts, getMergedPosts, getCachedPosts, saveToCache, posts]);
+    // Reset if no data at all
+    else if (!isLoading && posts.length === 0 && getCachedPosts().length === 0) {
+      setMergedPosts([]);
+    }
+  }, [deduplicatedPosts, getMergedPosts, getCachedPosts, saveToCache, posts, isLoading]);
+
+  // Clear cache and reset when wallet connects/disconnects
+  useEffect(() => {
+    if (isConnected) {
+      // When wallet connects, clear cache and refetch fresh data
+      saveToCache([]);
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      refetch();
+    } else {
+      // When wallet disconnects, show only cached posts
+      const cached = getCachedPosts();
+      const merged = getMergedPosts(cached);
+      setMergedPosts(merged);
+    }
+  }, [isConnected]);
+
+  // Handle initial load
+  useEffect(() => {
+    if (isFirstLoad && !isLoading) {
+      if (posts.length > 0) {
+        // We have on-chain data, use it and update cache
+        const merged = getMergedPosts(posts);
+        setMergedPosts(merged);
+        saveToCache(posts);
+      } else if (getCachedPosts().length > 0) {
+        // No on-chain data but we have cached posts
+        const cached = getCachedPosts();
+        const merged = getMergedPosts(cached);
+        setMergedPosts(merged);
+      }
+      setIsFirstLoad(false);
+    }
+  }, [isLoading, posts, isFirstLoad, getMergedPosts, getCachedPosts, saveToCache]);
 
   const handleNewPostFromWS = (postData: Post) => {
     // Check if we already have this post (from optimistic update)
@@ -200,16 +250,6 @@ export default function Home() {
     queryClient.invalidateQueries({ queryKey: ['posts'] });
     refetch();
   };
-
-  // Load cached posts only if no on-chain data
-  useEffect(() => {
-    if (!isLoading && posts.length === 0) {
-      const cached = getCachedPosts();
-      if (cached.length > 0) {
-        setMergedPosts(cached);
-      }
-    }
-  }, [isLoading, posts.length, getCachedPosts]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 p-4">
