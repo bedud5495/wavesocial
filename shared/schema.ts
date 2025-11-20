@@ -44,6 +44,7 @@ export interface ProfileMetadata {
 export interface PostContent {
   text: string;
   images?: string[];
+  mediaTypes?: string[];
   createdAt: number;
   authorAddress: string;
 }
@@ -61,6 +62,7 @@ export const profileMetadataSchema = z.object({
 export const postContentSchema = z.object({
   text: z.string().min(1).max(280),
   images: z.array(z.string().url()).max(4).optional(),
+  mediaTypes: z.array(z.string()).max(4).optional(),
   createdAt: z.number(),
   authorAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
 });
