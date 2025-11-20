@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import type { EnrichedPost } from '@shared/schema';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'wouter';
+import { IPFS_CONFIG } from '@/lib/web3/config';
 
 interface PostCardProps {
   post: EnrichedPost;
@@ -16,6 +17,13 @@ interface PostCardProps {
 
 export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
   const timeAgo = formatDistanceToNow(Number(post.timestamp) * 1000, { addSuffix: true });
+  
+  const getImageUrl = (ipfsHash: string) => {
+    const gatewayUrl = IPFS_CONFIG.gatewayUrl.endsWith('/') 
+      ? IPFS_CONFIG.gatewayUrl 
+      : `${IPFS_CONFIG.gatewayUrl}/`;
+    return `${gatewayUrl}${ipfsHash}`;
+  };
 
   return (
     <Card className="hover-elevate" data-testid={`card-post-${post.id}`}>
@@ -63,7 +71,7 @@ export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
                   {post.content.images.slice(0, 4).map((img, idx) => (
                     <img
                       key={idx}
-                      src={img}
+                      src={getImageUrl(img)}
                       alt=""
                       className="rounded-md w-full h-48 object-cover"
                       data-testid={`img-post-${post.id}-${idx}`}
