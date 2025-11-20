@@ -286,6 +286,37 @@ export function useSocialWave() {
     }
   };
 
+  const updateProfile = async (profileMetadata: ProfileMetadata) => {
+    if (!contract || !address) {
+      toast({ title: 'Error', description: 'Please connect your wallet', variant: 'destructive' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const profileHash = await uploadProfileMetadata(profileMetadata);
+      const tx = await contract.updateProfile(profileHash);
+      await tx.wait();
+
+      toast({
+        title: 'Profile Updated',
+        description: 'Your profile has been successfully updated.',
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['user', address] });
+    } catch (error: any) {
+      console.error('Update profile error:', error);
+      toast({
+        title: 'Update Failed',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     registerUser,
     createPost,
@@ -294,6 +325,7 @@ export function useSocialWave() {
     followUser,
     unfollowUser,
     verifyProfile,
+    updateProfile,
     getUser,
     getPost,
     isLoading,

@@ -2,33 +2,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, Users, FileText, Coins } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useSocialWaveContract } from '@/hooks/web3/useContract';
+import { useSocialWaveContract, useTokenContract } from '@/hooks/web3/useContract';
+import { formatUnits } from 'ethers';
 
 export default function Analytics() {
   const contract = useSocialWaveContract();
+  const tokenContract = useTokenContract();
 
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError } = useQuery({
     queryKey: ['platformStats'],
     queryFn: async () => {
-      if (!contract) return { userCount: 0n, postCount: 0n };
-      
-      try {
-        const [totalUsers, nextPostId] = await Promise.all([
-          contract.totalUsers(),
-          contract.nextPostId(),
-        ]);
-
-        return { 
-          userCount: totalUsers, 
-          postCount: nextPostId > 0n ? nextPostId - 1n : 0n 
-        };
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-        return { userCount: 0n, postCount: 0n };
+      if (!contract || !tokenContract) {
+        throw new Error('Contract not initialized');
       }
+      
+      const [totalUsers, nextPostId, contractBalance] = await Promise.all([
+        contract.totalUsers(),
+        contract.nextPostId(),
+        contract.getContractBalance(),
+      ]);
+        
+      return { 
+        userCount: totalUsers, 
+        postCount: nextPostId > BigInt(0) ? nextPostId - BigInt(1) : BigInt(0),
+        contractBalance: formatUnits(contractBalance, 18),
+      };
     },
-    enabled: !!contract,
+    enabled: !!contract && !!tokenContract,
     staleTime: 60000,
+    retry: 3,
   });
 
   return (
@@ -81,26 +83,42 @@ export default function Analytics() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tokens Distributed</CardTitle>
+            <CardTitle className="text-sm font-medium">Reward Pool</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold font-mono" data-testid="text-total-tokens">0</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : isError ? (
+              <div className="text-sm text-destructive">Error loading</div>
+            ) : (
+              <div className="text-2xl font-bold font-mono" data-testid="text-contract-balance">
+                {stats?.contractBalance ? Math.floor(Number(stats.contractBalance)).toLocaleString() : '0'}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              SWAVE tokens
+              SWAVE tokens available
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Platform Activity</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-growth-rate">0%</div>
+            {isLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : isError ? (
+              <div className="text-sm text-destructive">Error</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-activity-rate">
+                {stats ? `${stats.userCount.toString()}/${stats.postCount.toString()}` : '0/0'}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              Week over week
+              Users / Posts
             </p>
           </CardContent>
         </Card>

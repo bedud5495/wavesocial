@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useRoute } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PostCard } from '@/components/posts/PostCard';
-import { BadgeCheck, Users, FileText, Coins, UserPlus, UserMinus } from 'lucide-react';
+import { EditProfileDialog } from '@/components/profile/EditProfileDialog';
+import { BadgeCheck, Users, FileText, Coins, UserPlus, UserMinus, Pencil } from 'lucide-react';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { useSocialWave } from '@/hooks/web3/useSocialWave';
 import { useUser, useUserPosts, useIsFollowing } from '@/hooks/web3/useContractData';
@@ -16,6 +18,7 @@ export default function Profile() {
   const { address: currentUserAddress } = useWeb3();
   const { followUser, unfollowUser, likePost, unlikePost, isLoading: isTransacting } = useSocialWave();
   const profileAddress = params?.address || currentUserAddress;
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { data: user, isLoading: isLoadingUser } = useUser(profileAddress);
   const { data: posts = [], isLoading: isLoadingPosts } = useUserPosts(profileAddress);
@@ -94,7 +97,16 @@ export default function Profile() {
               </div>
             </div>
 
-            {!isOwnProfile && (
+            {isOwnProfile ? (
+              <Button
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(true)}
+                data-testid="button-edit-profile"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            ) : (
               <Button
                 variant={isFollowingData ? 'outline' : 'default'}
                 onClick={handleFollow}
@@ -194,6 +206,12 @@ export default function Profile() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <EditProfileDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        currentUser={user || null}
+      />
     </div>
   );
 }
