@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./SWAVEToken.sol";
 
-contract SocialWave is ReentrancyGuard {
+contract SocialWave is ReentrancyGuard, Ownable {
     SWAVEToken public swaveToken;
     
     uint256 public constant POST_REWARD = 1000 * 10**18;
@@ -67,7 +68,7 @@ contract SocialWave is ReentrancyGuard {
     event VerificationRevoked(address indexed user, uint256 refund);
     event ReferralRewardPaid(address indexed referrer, address indexed referee, uint256 level, uint256 amount);
     
-    constructor(address _swaveToken) {
+    constructor(address _swaveToken) Ownable(msg.sender) {
         swaveToken = SWAVEToken(_swaveToken);
     }
     
@@ -117,7 +118,8 @@ contract SocialWave is ReentrancyGuard {
             }
             
             uint256 reward = REFERRAL_REWARDS[i];
-            swaveToken.mint(currentReferrer, reward);
+            require(swaveToken.balanceOf(address(this)) >= reward, "Insufficient referral rewards");
+            require(swaveToken.transfer(currentReferrer, reward), "Referral reward transfer failed");
             users[currentReferrer].totalEarned += reward;
             
             emit ReferralRewardPaid(currentReferrer, _newUser, i + 1, reward);
@@ -150,7 +152,8 @@ contract SocialWave is ReentrancyGuard {
         users[msg.sender].postCount++;
         
         if (!_isAd) {
-            swaveToken.mint(msg.sender, POST_REWARD);
+            require(swaveToken.balanceOf(address(this)) >= POST_REWARD, "Insufficient post rewards");
+            require(swaveToken.transfer(msg.sender, POST_REWARD), "Post reward transfer failed");
             posts[postId].totalRewards = POST_REWARD;
             users[msg.sender].totalEarned += POST_REWARD;
             emit RewardClaimed(msg.sender, POST_REWARD, "Post creation");
@@ -171,7 +174,8 @@ contract SocialWave is ReentrancyGuard {
         
         if (newLikeCount % 1000 == 0 && newLikeCount > 0) {
             address author = posts[_postId].author;
-            swaveToken.mint(author, LIKE_MILESTONE_REWARD);
+            require(swaveToken.balanceOf(address(this)) >= LIKE_MILESTONE_REWARD, "Insufficient milestone rewards");
+            require(swaveToken.transfer(author, LIKE_MILESTONE_REWARD), "Milestone reward transfer failed");
             posts[_postId].totalRewards += LIKE_MILESTONE_REWARD;
             users[author].totalEarned += LIKE_MILESTONE_REWARD;
             emit RewardClaimed(author, LIKE_MILESTONE_REWARD, "Like milestone");
@@ -253,6 +257,20 @@ contract SocialWave is ReentrancyGuard {
                 break;
             }
         }
+    }
+    
+    function fundContract(uint256 amount) external onlyOwner {
+        require(swaveToken.transferFrom(msg.sender, address(this), amount), "Funding failed");
+    }
+    
+    function getContractBalance() external view returns (uint256) {
+        return swaveToken.balanceOf(address(this));
+    }
+    
+    function withdrawFees(address to) external onlyOwner nonReentrant {
+        uint256 balance = swaveToken.balanceOf(address(this));
+        require(balance > 0, "No funds to withdraw");
+        require(swaveToken.transfer(to, balance), "Withdrawal failed");
     }
     
     function getUserPosts(address _user) external view returns (uint256[] memory) {
