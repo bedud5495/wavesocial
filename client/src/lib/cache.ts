@@ -14,9 +14,29 @@ export class LocalCache {
         data,
         timestamp: Date.now(),
       };
-      localStorage.setItem(cacheKey, JSON.stringify(item));
+      const serialized = JSON.stringify(item);
+      
+      // Check if data is too large (localStorage typically has 5-10MB limit)
+      if (serialized.length > 1000000) {
+        console.warn(`Cache item ${key} is too large (${serialized.length} bytes), skipping`);
+        return;
+      }
+      
+      localStorage.setItem(cacheKey, serialized);
     } catch (error) {
-      console.error('Error saving to cache:', error);
+      if (error instanceof Error && error.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded, clearing old cache');
+        this.cleanOldData();
+        try {
+          const cacheKey = CACHE_PREFIX + key;
+          const item: CacheItem<T> = { data, timestamp: Date.now() };
+          localStorage.setItem(cacheKey, JSON.stringify(item));
+        } catch (retryError) {
+          console.error('Failed to save to cache after cleanup:', retryError);
+        }
+      } else {
+        console.error('Error saving to cache:', error);
+      }
     }
   }
 
