@@ -39,6 +39,13 @@ The application features a React TypeScript frontend with Tailwind CSS and Shadc
   - Revoke Verification button removes badge and refunds full stake
   - Mutual exclusive buttons (only one shows based on current verification status)
   - Both actions update profile badge in real-time via cache invalidation
+- **Critical Bug Fix: Create Post Functionality**:
+  - Fixed type system inconsistencies across the application
+  - Created client/src/types.ts for centralized type exports
+  - Fixed infinite render loop by wrapping cache functions (getPosts, savePosts) in useCallback
+  - Fixed optimistic update cleanup to prevent duplicate posts after creation
+  - Restored end-to-end type safety with createPost(content, images, mediaTypes, isAd)
+  - Application now runs without console errors or maximum update depth warnings
 
 ## User Preferences
 
