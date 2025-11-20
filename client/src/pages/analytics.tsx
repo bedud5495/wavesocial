@@ -16,21 +16,30 @@ export default function Analytics() {
         throw new Error('Contract not initialized');
       }
       
-      const [totalUsers, nextPostId, contractBalance] = await Promise.all([
-        contract.totalUsers(),
-        contract.nextPostId(),
-        contract.getContractBalance(),
-      ]);
-        
-      return { 
-        userCount: totalUsers, 
-        postCount: nextPostId > BigInt(0) ? nextPostId - BigInt(1) : BigInt(0),
-        contractBalance: formatUnits(contractBalance, 18),
-      };
+      try {
+        const [totalUsers, nextPostId, contractBalance] = await Promise.all([
+          contract.totalUsers(),
+          contract.nextPostId(),
+          contract.getContractBalance(),
+        ]);
+          
+        return { 
+          userCount: totalUsers, 
+          postCount: nextPostId > BigInt(0) ? nextPostId - BigInt(1) : BigInt(0),
+          contractBalance: formatUnits(contractBalance, 18),
+        };
+      } catch (error) {
+        // Silently handle RPC errors and throw to trigger retry
+        throw error;
+      }
     },
     enabled: !!contract && !!tokenContract,
     staleTime: 60000,
     retry: 3,
+    retryDelay: 2000,
+    onError: () => {
+      // Silently handle - prevents unhandled rejection warnings
+    },
   });
 
   return (
