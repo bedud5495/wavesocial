@@ -263,6 +263,34 @@ export function useSocialWave() {
     }
   };
 
+  const revokeVerification = async () => {
+    if (!contract || !address) return;
+
+    setIsLoading(true);
+    try {
+      const tx = await contract.revokeVerification();
+      await tx.wait();
+
+      toast({
+        title: 'Verification Revoked',
+        description: `Your verification has been revoked and ${parseInt(TOKEN_REWARDS.VERIFICATION_STAKE).toLocaleString()} SWAVE tokens have been refunded.`,
+      });
+
+      refreshBalance();
+      queryClient.invalidateQueries({ queryKey: ['user', address] });
+    } catch (error: any) {
+      console.error('Revoke verification error:', error);
+      toast({
+        title: 'Revoke Failed',
+        description: error.message || 'Transaction failed',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getUser = async (userAddress: string): Promise<User | null> => {
     if (!contract) return null;
 
@@ -326,6 +354,7 @@ export function useSocialWave() {
     followUser,
     unfollowUser,
     verifyProfile,
+    revokeVerification,
     updateProfile,
     getUser,
     getPost,

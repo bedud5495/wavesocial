@@ -16,7 +16,7 @@ import { useUser, useUserPosts, useUserLikedPosts, useIsFollowing } from '@/hook
 export default function Profile() {
   const [, params] = useRoute('/profile/:address');
   const { address: currentUserAddress } = useWeb3();
-  const { followUser, unfollowUser, likePost, unlikePost, isLoading: isTransacting } = useSocialWave();
+  const { followUser, unfollowUser, likePost, unlikePost, verifyProfile, revokeVerification, isLoading: isTransacting } = useSocialWave();
   const profileAddress = params?.address || currentUserAddress;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -42,6 +42,14 @@ export default function Profile() {
 
   const handleUnlike = async (postId: bigint) => {
     await unlikePost(postId);
+  };
+
+  const handleVerifyProfile = async () => {
+    await verifyProfile();
+  };
+
+  const handleRevokeVerification = async () => {
+    await revokeVerification();
   };
 
   if (isLoadingUser) {
@@ -104,14 +112,37 @@ export default function Profile() {
             </div>
 
             {isOwnProfile ? (
-              <Button
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(true)}
-                data-testid="button-edit-profile"
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(true)}
+                  data-testid="button-edit-profile"
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+                {!user?.isVerified ? (
+                  <Button
+                    variant="default"
+                    onClick={handleVerifyProfile}
+                    disabled={isTransacting}
+                    data-testid="button-verify-profile"
+                  >
+                    <BadgeCheck className="h-4 w-4 mr-2" />
+                    Verify Profile
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={handleRevokeVerification}
+                    disabled={isTransacting}
+                    data-testid="button-revoke-verification"
+                  >
+                    <BadgeCheck className="h-4 w-4 mr-2" />
+                    Revoke Verification
+                  </Button>
+                )}
+              </div>
             ) : (
               <Button
                 variant={isFollowingData ? 'outline' : 'default'}
