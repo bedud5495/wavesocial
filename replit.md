@@ -33,6 +33,12 @@ The application features a React TypeScript frontend with Tailwind CSS and Shadc
   - Media types tracked during upload for new posts
   - Automatic detection of legacy videos via Content-Type headers for backward compatibility
   - MediaDisplay component handles rendering with loading states during detection
+- Profile verification system:
+  - Verify/Revoke buttons visible on user's own profile page
+  - Verify Profile button stakes 100,000 SWAVE tokens for verification badge
+  - Revoke Verification button removes badge and refunds full stake
+  - Mutual exclusive buttons (only one shows based on current verification status)
+  - Both actions update profile badge in real-time via cache invalidation
 
 ## User Preferences
 
