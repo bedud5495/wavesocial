@@ -27,6 +27,12 @@ The application features a React TypeScript frontend with Tailwind CSS and Shadc
   - Default referrer (0xe70D6c12996Fb65FDd92B662fBb54FfC1E94f31a) used when no valid ref provided
   - Self-referral prevention with automatic fallback to default
   - Stale referrer cleanup when invalid or missing ref parameters
+- Video upload and playback support:
+  - Posts now support both images and videos (up to 4 media items per post)
+  - Videos display with native HTML5 video player and playback controls
+  - Media types tracked during upload for new posts
+  - Automatic detection of legacy videos via Content-Type headers for backward compatibility
+  - MediaDisplay component handles rendering with loading states during detection
 
 ## User Preferences
 
