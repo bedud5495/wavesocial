@@ -47,7 +47,7 @@ export function useSocialWave() {
     }
   };
 
-  const createPost = async (content: string, images: string[], isAd: boolean) => {
+  const createPost = async (content: string, images: string[], mediaTypes: string[], isAd: boolean) => {
     if (!contract || !address || !tokenContract) {
       toast({ title: 'Error', description: 'Please connect your wallet', variant: 'destructive' });
       return;
@@ -58,6 +58,7 @@ export function useSocialWave() {
       const postContent: PostContent = {
         text: content,
         images: images.length > 0 ? images : undefined,
+        mediaTypes: mediaTypes.length > 0 ? mediaTypes : undefined,
         createdAt: Date.now(),
         authorAddress: address,
       };

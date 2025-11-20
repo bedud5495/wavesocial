@@ -11,7 +11,7 @@ import { uploadImage } from '@/lib/ipfs/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface CreatePostProps {
-  onSubmit: (content: string, images: string[], isAd: boolean) => Promise<void>;
+  onSubmit: (content: string, images: string[], mediaTypes: string[], isAd: boolean) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -20,6 +20,7 @@ export function CreatePost({ onSubmit, isSubmitting }: CreatePostProps) {
   const [content, setContent] = useState('');
   const [isAd, setIsAd] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [mediaTypes, setMediaTypes] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -52,6 +53,7 @@ export function CreatePost({ onSubmit, isSubmitting }: CreatePostProps) {
 
       const cid = await uploadImage(file);
       setSelectedImages([...selectedImages, cid]);
+      setMediaTypes([...mediaTypes, file.type]);
       
       toast({
         title: 'Upload successful',
@@ -74,15 +76,17 @@ export function CreatePost({ onSubmit, isSubmitting }: CreatePostProps) {
 
   const removeImage = (index: number) => {
     setSelectedImages(selectedImages.filter((_, i) => i !== index));
+    setMediaTypes(mediaTypes.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
 
     try {
-      await onSubmit(content, selectedImages, isAd);
+      await onSubmit(content, selectedImages, mediaTypes, isAd);
       setContent('');
       setSelectedImages([]);
+      setMediaTypes([]);
       setIsAd(false);
       setOpen(false);
     } catch (error) {
@@ -129,13 +133,24 @@ export function CreatePost({ onSubmit, isSubmitting }: CreatePostProps) {
                   const gatewayUrl = IPFS_CONFIG.gatewayUrl.endsWith('/') 
                     ? IPFS_CONFIG.gatewayUrl 
                     : `${IPFS_CONFIG.gatewayUrl}/`;
+                  const mediaUrl = `${gatewayUrl}${cid}`;
+                  const isVideo = mediaTypes[index]?.startsWith('video/');
+                  
                   return (
                     <div key={index} className="relative group">
-                      <img
-                        src={`${gatewayUrl}${cid}`}
-                        alt="Upload preview"
-                        className="h-20 w-20 object-cover rounded border"
-                      />
+                      {isVideo ? (
+                        <video
+                          src={mediaUrl}
+                          className="h-20 w-20 object-cover rounded border"
+                          muted
+                        />
+                      ) : (
+                        <img
+                          src={mediaUrl}
+                          alt="Upload preview"
+                          className="h-20 w-20 object-cover rounded border"
+                        />
+                      )}
                       <Button
                         variant="destructive"
                         size="icon"

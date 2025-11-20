@@ -42,9 +42,9 @@ export default function Home() {
     }
   };
 
-  const handleCreatePost = async (content: string, images: string[], isAd: boolean) => {
+  const handleCreatePost = async (content: string, images: string[], mediaTypes: string[], isAd: boolean) => {
     try {
-      await createPost(content, images, isAd);
+      await createPost(content, images, mediaTypes, isAd);
       // Invalidate posts query to show new post
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     } catch (error) {
