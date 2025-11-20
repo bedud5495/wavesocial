@@ -46,6 +46,12 @@ The application features a React TypeScript frontend with Tailwind CSS and Shadc
   - Fixed optimistic update cleanup to prevent duplicate posts after creation
   - Restored end-to-end type safety with createPost(content, images, mediaTypes, isAd)
   - Application now runs without console errors or maximum update depth warnings
+- **Mobile Wallet Support with WalletConnect**:
+  - Integrated Web3Modal with WalletConnect for mobile browser support
+  - Users can now connect MetaMask mobile app from any mobile browser (Chrome, Safari, etc.)
+  - Desktop users can continue using browser extensions (MetaMask, etc.)
+  - Supports QR code scanning and deep linking for mobile wallet connections
+  - Multi-wallet support through Web3Modal interface
 
 ## User Preferences
 

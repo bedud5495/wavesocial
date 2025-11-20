@@ -1,9 +1,56 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { BrowserProvider, Contract, formatUnits } from 'ethers';
+import { BrowserProvider, Contract, formatUnits, JsonRpcSigner } from 'ethers';
+import { createWeb3Modal, defaultConfig, useWeb3Modal } from '@web3modal/ethers/react';
+import { useWeb3ModalAccount, useWeb3ModalProvider, useDisconnect } from '@web3modal/ethers/react';
 import type { WalletState } from '@/lib/web3/types';
 import { CHAIN_CONFIG, CONTRACT_ADDRESSES } from '@/lib/web3/config';
 import SWAVETokenABI from '@/contracts/SWAVEToken.json';
 import { useToast } from '@/hooks/use-toast';
+
+// WalletConnect project ID from environment
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
+
+if (!projectId) {
+  throw new Error('VITE_WALLETCONNECT_PROJECT_ID is not set');
+}
+
+// Define opBNB Testnet chain metadata
+const opBNBTestnet = {
+  chainId: CHAIN_CONFIG.chainId,
+  name: CHAIN_CONFIG.name,
+  currency: CHAIN_CONFIG.currency,
+  explorerUrl: CHAIN_CONFIG.explorerUrl,
+  rpcUrl: CHAIN_CONFIG.rpcUrl,
+};
+
+// Web3Modal metadata
+const metadata = {
+  name: 'SWAVE',
+  description: 'Decentralized Social Platform with Token Rewards',
+  url: 'https://swave.app',
+  icons: ['https://swave.app/icon.png'],
+};
+
+// Create Web3Modal with WalletConnect support
+const ethersConfig = defaultConfig({
+  metadata,
+  enableEIP6963: true,
+  enableInjected: true,
+  enableCoinbase: false,
+  rpcUrl: CHAIN_CONFIG.rpcUrl,
+  defaultChainId: CHAIN_CONFIG.chainId,
+});
+
+createWeb3Modal({
+  ethersConfig,
+  chains: [opBNBTestnet],
+  projectId,
+  enableAnalytics: false,
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': 'hsl(262.1 83.3% 57.8%)',
+  },
+});
 
 interface Web3ContextType extends WalletState {
   connect: () => Promise<void>;
@@ -16,18 +63,39 @@ interface Web3ContextType extends WalletState {
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
 export function Web3Provider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<WalletState>({
-    address: null,
-    chainId: null,
-    isConnected: false,
-    provider: null,
-    signer: null,
-  });
+  const { address, chainId, isConnected } = useWeb3ModalAccount();
+  const { walletProvider } = useWeb3ModalProvider();
+  const { disconnect: web3ModalDisconnect } = useDisconnect();
+  const { open } = useWeb3Modal();
+  
+  const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
   const [swaveBalance, setSwaveBalance] = useState('0');
   const { toast } = useToast();
 
+  // Update provider and signer when wallet connects
+  useEffect(() => {
+    const updateProviderAndSigner = async () => {
+      if (walletProvider && isConnected) {
+        try {
+          const ethersProvider = new BrowserProvider(walletProvider);
+          const ethersSigner = await ethersProvider.getSigner();
+          setProvider(ethersProvider);
+          setSigner(ethersSigner);
+        } catch (error) {
+          console.error('Error setting up provider:', error);
+        }
+      } else {
+        setProvider(null);
+        setSigner(null);
+      }
+    };
+
+    updateProviderAndSigner();
+  }, [walletProvider, isConnected]);
+
   const refreshBalance = async () => {
-    if (!state.address || !state.provider) return;
+    if (!address || !provider) return;
 
     try {
       if (!CONTRACT_ADDRESSES.swaveToken) {
@@ -38,10 +106,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       const tokenContract = new Contract(
         CONTRACT_ADDRESSES.swaveToken,
         SWAVETokenABI.abi,
-        state.provider
+        provider
       );
 
-      const balance = await tokenContract.balanceOf(state.address);
+      const balance = await tokenContract.balanceOf(address);
       const decimals = await tokenContract.decimals();
       setSwaveBalance(formatUnits(balance, decimals));
     } catch (error) {
@@ -51,59 +119,13 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   };
 
   const connect = async () => {
-    try {
-      if (!window.ethereum) {
-        toast({
-          title: 'Wallet not found',
-          description: 'Please install MetaMask or another Web3 wallet',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      const provider = new BrowserProvider(window.ethereum);
-      const accounts = await provider.send('eth_requestAccounts', []);
-      const network = await provider.getNetwork();
-      const signer = await provider.getSigner();
-
-      setState({
-        address: accounts[0],
-        chainId: Number(network.chainId),
-        isConnected: true,
-        provider,
-        signer,
-      });
-
-      if (Number(network.chainId) !== CHAIN_CONFIG.chainId) {
-        toast({
-          title: 'Wrong Network',
-          description: `Please switch to ${CHAIN_CONFIG.name}`,
-          variant: 'destructive',
-        });
-      }
-
-      toast({
-        title: 'Wallet Connected',
-        description: `Connected to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`,
-      });
-    } catch (error: any) {
-      console.error('Connection error:', error);
-      toast({
-        title: 'Connection Failed',
-        description: error.message || 'Failed to connect wallet',
-        variant: 'destructive',
-      });
-    }
+    // Open Web3Modal for wallet selection
+    // Supports both browser extensions and WalletConnect for mobile
+    await open();
   };
 
-  const disconnect = () => {
-    setState({
-      address: null,
-      chainId: null,
-      isConnected: false,
-      provider: null,
-      signer: null,
-    });
+  const disconnect = async () => {
+    await web3ModalDisconnect();
     setSwaveBalance('0');
     toast({
       title: 'Wallet Disconnected',
@@ -113,16 +135,16 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   const switchNetwork = async () => {
     try {
-      if (!window.ethereum) return;
+      if (!walletProvider) return;
 
-      await window.ethereum.request({
+      await walletProvider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: CHAIN_CONFIG.chainIdHex }],
       });
     } catch (error: any) {
       if (error.code === 4902) {
         try {
-          await window.ethereum?.request({
+          await walletProvider?.request({
             method: 'wallet_addEthereumChain',
             params: [
               {
@@ -145,38 +167,44 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Refresh balance when connected
   useEffect(() => {
-    if (state.isConnected) {
+    if (isConnected && address && provider) {
       refreshBalance();
     }
-  }, [state.isConnected, state.address]);
+  }, [isConnected, address, provider]);
 
+  // Check network on connection
   useEffect(() => {
-    if (!window.ethereum) return;
+    if (isConnected && chainId !== CHAIN_CONFIG.chainId) {
+      toast({
+        title: 'Wrong Network',
+        description: `Please switch to ${CHAIN_CONFIG.name}`,
+        variant: 'destructive',
+      });
+    }
+  }, [isConnected, chainId]);
 
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) {
-        disconnect();
-      } else if (accounts[0] !== state.address) {
-        setState(prev => ({ ...prev, address: accounts[0] }));
-      }
-    };
-
-    const handleChainChanged = () => {
-      window.location.reload();
-    };
-
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
-
-    return () => {
-      window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum?.removeListener('chainChanged', handleChainChanged);
-    };
-  }, [state.address]);
+  // Build the wallet state object
+  const walletState: WalletState = {
+    address: address || null,
+    chainId: chainId || null,
+    isConnected,
+    provider,
+    signer,
+  };
 
   return (
-    <Web3Context.Provider value={{ ...state, connect, disconnect, switchNetwork, refreshBalance, swaveBalance }}>
+    <Web3Context.Provider 
+      value={{ 
+        ...walletState, 
+        connect, 
+        disconnect, 
+        switchNetwork, 
+        refreshBalance, 
+        swaveBalance 
+      }}
+    >
       {children}
     </Web3Context.Provider>
   );

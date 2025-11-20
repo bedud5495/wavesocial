@@ -18,8 +18,6 @@ export const IPFS_CONFIG = {
   pinataJWT: '',
 };
 
-export const WALLETCONNECT_PROJECT_ID = 'your_walletconnect_project_id_here';
-
 export const TOKEN_REWARDS = {
   POST_CREATION: '1000',
   LIKE_MILESTONE: '1000',
