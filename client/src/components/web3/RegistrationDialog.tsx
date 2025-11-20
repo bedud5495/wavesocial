@@ -16,6 +16,7 @@ import { useSocialWave } from '@/hooks/web3/useSocialWave';
 import { useUser } from '@/hooks/web3/useContractData';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { useToast } from '@/hooks/use-toast';
+import { DEFAULT_REFERRER } from '@/lib/web3/config';
 import type { ProfileMetadata } from '@shared/schema';
 
 export function RegistrationDialog() {
@@ -52,10 +53,18 @@ export function RegistrationDialog() {
       } else if (!user && !userError) {
         setOpen(true);
         
-        const urlParams = new URLSearchParams(window.location.search);
-        const refParam = urlParams.get('ref');
-        if (refParam && refParam !== address) {
-          setReferrerAddress(refParam);
+        const storedRef = sessionStorage.getItem('swave_referrer');
+        
+        if (storedRef && storedRef.toLowerCase() !== address.toLowerCase()) {
+          setReferrerAddress(storedRef);
+        } else {
+          if (storedRef && storedRef.toLowerCase() === address.toLowerCase()) {
+            sessionStorage.removeItem('swave_referrer');
+          }
+          
+          if (DEFAULT_REFERRER.toLowerCase() !== address.toLowerCase()) {
+            setReferrerAddress(DEFAULT_REFERRER);
+          }
         }
       }
     }
@@ -79,6 +88,7 @@ export function RegistrationDialog() {
       
       const registeredKey = `swave_registered_${address.toLowerCase()}`;
       localStorage.setItem(registeredKey, 'true');
+      sessionStorage.removeItem('swave_referrer');
       setIsAlreadyRegistered(true);
       setOpen(false);
     } catch (error: any) {

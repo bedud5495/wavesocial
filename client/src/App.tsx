@@ -49,7 +49,17 @@ function AppContent() {
     const refParam = urlParams.get('ref');
     
     if (refParam) {
-      sessionStorage.setItem('swave_referrer', refParam);
+      try {
+        if (refParam.match(/^0x[a-fA-F0-9]{40}$/)) {
+          sessionStorage.setItem('swave_referrer', refParam.toLowerCase());
+        } else {
+          sessionStorage.removeItem('swave_referrer');
+        }
+      } catch (e) {
+        sessionStorage.removeItem('swave_referrer');
+      }
+    } else {
+      sessionStorage.removeItem('swave_referrer');
     }
   }, []);
 
