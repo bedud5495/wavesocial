@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -42,6 +43,15 @@ function AppContent() {
   const { isConnected } = useWeb3();
 
   useCacheRefresh(isConnected);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
+    
+    if (refParam) {
+      sessionStorage.setItem('swave_referrer', refParam);
+    }
+  }, []);
 
   const sidebarStyle = {
     "--sidebar-width": "20rem",
