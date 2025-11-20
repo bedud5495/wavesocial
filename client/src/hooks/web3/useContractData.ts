@@ -113,7 +113,7 @@ export function usePost(postId: bigint | null | undefined) {
   });
 }
 
-export function usePosts(startId: number = 0, limit: number = 20) {
+export function usePosts(startId: number = 0, limit: number = 50) {
   const contract = useSocialWaveContract();
   const { address } = useWeb3();
 

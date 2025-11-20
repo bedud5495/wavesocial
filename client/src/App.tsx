@@ -7,8 +7,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/app-sidebar";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { Web3Provider } from "@/contexts/Web3Context";
+import { BootstrapProvider } from "@/contexts/BootstrapContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { RegistrationDialog } from "@/components/web3/RegistrationDialog";
+import { BootstrapLoader } from "@/components/BootstrapLoader";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
@@ -66,6 +68,7 @@ function AppContent() {
           </div>
         </div>
       </SidebarProvider>
+      <BootstrapLoader />
       <RegistrationDialog />
       <Toaster />
     </>
@@ -77,9 +80,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
         <Web3Provider>
-          <TooltipProvider>
-            <AppContent />
-          </TooltipProvider>
+          <BootstrapProvider>
+            <TooltipProvider>
+              <AppContent />
+            </TooltipProvider>
+          </BootstrapProvider>
         </Web3Provider>
       </ThemeProvider>
     </QueryClientProvider>
