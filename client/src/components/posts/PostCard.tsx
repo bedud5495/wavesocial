@@ -107,10 +107,7 @@ export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
             </span>
           </Button>
 
-          <Button variant="ghost" size="sm" className="gap-2" data-testid={`button-repost-${post.id}`}>
-            <Repeat2 className="h-4 w-4" />
-            <span className="text-sm">0</span>
-          </Button>
+      
         </div>
 
         {post.totalRewards > 0n && (
