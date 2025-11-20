@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSocialWaveContract } from './useContract';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { fetchPostContent, fetchProfileMetadata } from '@/lib/ipfs/client';
+import { LocalCache } from '@/lib/cache';
 import type { EnrichedPost, EnrichedUser, Post, User } from '@shared/schema';
 
 export function useUser(address: string | null | undefined) {
@@ -11,6 +12,12 @@ export function useUser(address: string | null | undefined) {
     queryKey: ['user', address],
     queryFn: async (): Promise<EnrichedUser | null> => {
       if (!contract || !address) return null;
+
+      const cacheKey = `user_${address.toLowerCase()}`;
+      const cached = LocalCache.get<EnrichedUser>(cacheKey);
+      if (cached) {
+        return cached;
+      }
 
       try {
         const userData = await contract.getUser(address);
@@ -25,7 +32,7 @@ export function useUser(address: string | null | undefined) {
           if (fetchedProfile) profile = fetchedProfile;
         }
 
-        return {
+        const enrichedUser = {
           address,
           username: userData.username,
           profileHash: userData.profileIPFSHash,
@@ -38,6 +45,9 @@ export function useUser(address: string | null | undefined) {
           verificationStake: userData.verificationStake,
           profile,
         };
+
+        LocalCache.set(cacheKey, enrichedUser);
+        return enrichedUser;
       } catch (error) {
         console.error('Error fetching user:', error);
         return null;
@@ -122,6 +132,12 @@ export function usePosts(startId: number = 0, limit: number = 50) {
     queryFn: async (): Promise<EnrichedPost[]> => {
       if (!contract) return [];
 
+      const cacheKey = `posts_${startId}_${limit}`;
+      const cached = LocalCache.get<EnrichedPost[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
       try {
         const nextPostId = await contract.nextPostId();
         const totalPosts = Number(nextPostId) - 1;
@@ -186,6 +202,7 @@ export function usePosts(startId: number = 0, limit: number = 50) {
           }
         }
 
+        LocalCache.set(cacheKey, posts);
         return posts;
       } catch (error) {
         console.error('Error fetching posts:', error);

@@ -11,6 +11,8 @@ import { BootstrapProvider } from "@/contexts/BootstrapContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { RegistrationDialog } from "@/components/web3/RegistrationDialog";
 import { BootstrapLoader } from "@/components/BootstrapLoader";
+import { useCacheRefresh } from "@/hooks/useCacheRefresh";
+import { useWeb3 } from "@/contexts/Web3Context";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Profile from "@/pages/profile";
@@ -37,6 +39,9 @@ function Router() {
 function AppContent() {
   const [location] = useLocation();
   const isLandingPage = location === '/';
+  const { isConnected } = useWeb3();
+
+  useCacheRefresh(isConnected);
 
   const sidebarStyle = {
     "--sidebar-width": "20rem",

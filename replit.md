@@ -6,7 +6,14 @@ SWAVE is a decentralized social media platform built on the opBNB testnet (BSC L
 
 The application features a React TypeScript frontend with Tailwind CSS and Shadcn UI components, smart contracts written in Solidity, and IPFS storage for content and metadata. Users connect via Web3 wallets (MetaMask) to interact with on-chain social features while earning SWAVE tokens for platform activity.
 
-**Latest Update (Nov 20, 2025)**: Contract redeployed to address 0x037599739797faAA042Bf9b2238Cc85BA20C5bB7 with bug fixes. Added Settings page to help users clear registration cache and view contract information.
+**Latest Update (Nov 20, 2025)**: 
+- Contract redeployed to address 0x037599739797faAA042Bf9b2238Cc85BA20C5bB7 with bug fixes
+- Added Settings page to help users clear registration cache and view contract information
+- Implemented localStorage caching system for improved performance:
+  - Data fetched from blockchain is cached locally
+  - Cache refreshes every 1 minute automatically
+  - Old cache data (>24 hours) is automatically cleaned up
+  - Users see instant data from cache while fresh data loads in background
 
 ## User Preferences
 
@@ -64,6 +71,14 @@ Preferred communication style: Simple, everyday language.
 - Post content: text, images, timestamps, author address
 
 **Hybrid Approach**: Smart contracts store IPFS hashes (CID) linking to rich metadata, keeping on-chain storage minimal while maintaining decentralization.
+
+**LocalStorage Caching**: Performance optimization layer implemented in `client/src/lib/cache.ts`:
+- All fetched data (users, posts) cached in browser localStorage with timestamps
+- Cache key prefix: `swave_cache_`
+- Automatic refresh every 60 seconds (via `useCacheRefresh` hook)
+- Automatic cleanup of data older than 24 hours
+- Cache-first strategy: shows cached data immediately, fetches fresh data in background
+- Benefits: Faster load times, reduced blockchain RPC calls, better UX during network issues
 
 ### Web3 Integration
 
