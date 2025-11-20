@@ -7,6 +7,7 @@ import type { EnrichedPost } from '@shared/schema';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'wouter';
 import { IPFS_CONFIG } from '@/lib/web3/config';
+import { MediaDisplay } from './MediaDisplay';
 
 interface PostCardProps {
   post: EnrichedPost;
@@ -68,15 +69,21 @@ export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
 
               {post.content?.images && post.content.images.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-3">
-                  {post.content.images.slice(0, 4).map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={getImageUrl(img)}
-                      alt=""
-                      className="rounded-md w-full h-48 object-cover"
-                      data-testid={`img-post-${post.id}-${idx}`}
-                    />
-                  ))}
+                  {post.content.images.slice(0, 4).map((img, idx) => {
+                    const mediaUrl = getImageUrl(img);
+                    const mediaType = post.content?.mediaTypes?.[idx];
+                    
+                    return (
+                      <MediaDisplay
+                        key={idx}
+                        src={mediaUrl}
+                        mediaType={mediaType}
+                        className="rounded-md w-full h-48 object-cover"
+                        postId={post.id}
+                        index={idx}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
