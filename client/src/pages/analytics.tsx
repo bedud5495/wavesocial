@@ -17,6 +17,9 @@ import { formatUnits } from "ethers";
 export default function Analytics() {
   const contract = useSocialWaveContract();
   const tokenContract = useTokenContract();
+  
+  // Check if contracts are still initializing
+  const contractsLoading = !contract || !tokenContract;
 
   const {
     data: stats,
@@ -24,10 +27,11 @@ export default function Analytics() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["platformStats"],
+    queryKey: ["platformStats", contract, tokenContract],
     queryFn: async () => {
+      // Add more specific checks
       if (!contract || !tokenContract) {
-        throw new Error("Contract not initialized");
+        throw new Error("Contracts not initialized");
       }
 
       try {
@@ -39,17 +43,13 @@ export default function Analytics() {
         let contractBalance;
 
         try {
-          // First try: Use getContractBalance from SocialWave contract
           contractBalance = await contract.getContractBalance();
-
-          // If balance is 0, try alternative method
           if (contractBalance === BigInt(0)) {
             const contractAddress = await contract.getAddress();
             contractBalance = await tokenContract.balanceOf(contractAddress);
           }
         } catch (balanceError) {
           console.warn('getContractBalance failed, using fallback:', balanceError);
-          // Fallback: Use token contract directly
           const contractAddress = await contract.getAddress();
           contractBalance = await tokenContract.balanceOf(contractAddress);
         }
@@ -64,10 +64,11 @@ export default function Analytics() {
         throw new Error("Failed to load platform statistics");
       }
     },
-    enabled: !!contract && !!tokenContract,
+    enabled: !contractsLoading, // Only enable when contracts are ready
     staleTime: 60000,
     retry: 3,
-    retryDelay: 2000,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,
   });
 
   // Format numbers with proper fallbacks
@@ -81,6 +82,34 @@ export default function Analytics() {
     const numBalance = Number(balance);
     return isNaN(numBalance) ? "0" : Math.floor(numBalance).toLocaleString();
   };
+
+  // Show loading state while contracts are initializing
+  if (contractsLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-4 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Platform Analytics</h1>
+          <p className="text-muted-foreground mt-2">
+            Initializing contracts...
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-4 rounded-full" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
@@ -188,8 +217,6 @@ export default function Analytics() {
           </CardContent>
         </Card>
       </div>
-
-   
     </div>
   );
 }
