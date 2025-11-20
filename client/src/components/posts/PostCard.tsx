@@ -14,9 +14,10 @@ interface PostCardProps {
   onLike: (postId: bigint) => void;
   onUnlike: (postId: bigint) => void;
   isLiking?: boolean;
+  isOptimistic?: boolean;
 }
 
-export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
+export function PostCard({ post, onLike, onUnlike, isLiking, isOptimistic = false }: PostCardProps) {
   const timeAgo = formatDistanceToNow(Number(post.timestamp) * 1000, { addSuffix: true });
   
   const getImageUrl = (ipfsHash: string) => {
@@ -27,8 +28,15 @@ export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
   };
 
   return (
-    <Card className="hover-elevate" data-testid={`card-post-${post.id}`}>
+    <Card className={`hover-elevate ${isOptimistic ? 'opacity-70 bg-muted/50' : ''}`} data-testid={`card-post-${post.id}`}>
       <CardContent className="p-4 space-y-3">
+        {isOptimistic && (
+          <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+            <Clock className="h-3 w-3" />
+            Pending
+          </Badge>
+        )}
+        
         <div className="flex items-start gap-3">
           <Link href={`/profile/${post.author}`}>
             <Avatar className="h-12 w-12 hover-elevate">
@@ -97,7 +105,7 @@ export function PostCard({ post, onLike, onUnlike, isLiking }: PostCardProps) {
             variant="ghost"
             size="sm"
             onClick={() => post.hasLiked ? onUnlike(post.id) : onLike(post.id)}
-            disabled={isLiking}
+            disabled={isLiking || isOptimistic}
             className="gap-2"
             data-testid={`button-like-${post.id}`}
           >
