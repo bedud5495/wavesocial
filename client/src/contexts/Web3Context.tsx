@@ -3,16 +3,12 @@ import { BrowserProvider, Contract, formatUnits, JsonRpcSigner } from 'ethers';
 import { createWeb3Modal, defaultConfig, useWeb3Modal } from '@web3modal/ethers/react';
 import { useWeb3ModalAccount, useWeb3ModalProvider, useDisconnect } from '@web3modal/ethers/react';
 import type { WalletState } from '@/lib/web3/types';
-import { CHAIN_CONFIG, CONTRACT_ADDRESSES } from '@/lib/web3/config';
+import { CHAIN_CONFIG, CONTRACT_ADDRESSES, WALLETCONNECT_PROJECT_ID } from '@/lib/web3/config';
 import SWAVETokenABI from '@/contracts/SWAVEToken.json';
 import { useToast } from '@/hooks/use-toast';
 
-// WalletConnect project ID from environment
-const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
-
-if (!projectId) {
-  throw new Error('VITE_WALLETCONNECT_PROJECT_ID is not set');
-}
+// WalletConnect project ID from config
+const projectId = WALLETCONNECT_PROJECT_ID;
 
 // Define opBNB Testnet chain metadata
 const opBNBTestnet = {

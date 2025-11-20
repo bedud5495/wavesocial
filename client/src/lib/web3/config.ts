@@ -18,6 +18,8 @@ export const IPFS_CONFIG = {
   pinataJWT: '',
 };
 
+export const WALLETCONNECT_PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID_HERE';
+
 export const TOKEN_REWARDS = {
   POST_CREATION: '1000',
   LIKE_MILESTONE: '1000',
