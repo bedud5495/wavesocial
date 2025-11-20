@@ -47,7 +47,7 @@ export default function Profile() {
     return (
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         <Card>
-          <div className="h-48 bg-gradient-to-r from-primary/20 to-accent/20 rounded-t-lg" />
+          <Skeleton className="h-48 rounded-t-lg" />
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-4">
               <Skeleton className="h-24 w-24 rounded-full" />
@@ -65,7 +65,12 @@ export default function Profile() {
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <Card>
-        <div className="h-48 bg-gradient-to-r from-primary/20 to-accent/20 rounded-t-lg" />
+        <div 
+          className="h-48 bg-gradient-to-r from-primary/20 to-accent/20 rounded-t-lg bg-cover bg-center"
+          style={user?.profile?.coverImageUrl ? {
+            backgroundImage: `url(${user.profile.coverImageUrl})`,
+          } : undefined}
+        />
         <CardContent className="p-6 space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
