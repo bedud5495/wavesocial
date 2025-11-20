@@ -46,7 +46,7 @@ export function useUser(address: string | null | undefined) {
           profile,
         };
 
-        LocalCache.set(cacheKey, enrichedUser, 30000);
+        LocalCache.set(cacheKey, enrichedUser);
         return enrichedUser;
       } catch (error) {
         console.debug('Error fetching user:', error);
@@ -205,7 +205,7 @@ export function usePosts(startId: number = 0, limit: number = 50) {
           }
         }
 
-        LocalCache.set(cacheKey, posts, 30000);
+        LocalCache.set(cacheKey, posts);
         return posts;
       } catch (error) {
         console.error('Error fetching posts:', error);
@@ -295,6 +295,87 @@ export function useUserPosts(userAddress: string | null | undefined) {
         return posts;
       } catch (error) {
         console.error('Error fetching user posts:', error);
+        return [];
+      }
+    },
+    enabled: !!contract && !!userAddress,
+    staleTime: 30000,
+    retry: 2,
+  });
+}
+
+export function useUserLikedPosts(userAddress: string | null | undefined, limit: number = 100) {
+  const contract = useSocialWaveContract();
+
+  return useQuery({
+    queryKey: ['userLikedPosts', userAddress, limit],
+    queryFn: async (): Promise<EnrichedPost[]> => {
+      if (!contract || !userAddress) return [];
+
+      const cacheKey = `liked_posts_${userAddress.toLowerCase()}_${limit}`;
+      const cached = LocalCache.get<EnrichedPost[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      try {
+        const nextPostId = await contract.nextPostId();
+        const totalPosts = Number(nextPostId) - 1;
+        
+        if (totalPosts <= 0) return [];
+
+        const likedPosts: EnrichedPost[] = [];
+        const startId = Math.max(1, totalPosts - limit + 1);
+        
+        for (let i = totalPosts; i >= startId; i--) {
+          try {
+            const hasLiked = await contract.hasLikedPost(userAddress, BigInt(i));
+            
+            if (!hasLiked) continue;
+
+            const postData = await contract.getPost(BigInt(i));
+            
+            if (!postData.exists) continue;
+            
+            let content = undefined;
+            if (postData.contentIPFSHash) {
+              const fetchedContent = await fetchPostContent(postData.contentIPFSHash);
+              if (fetchedContent) content = fetchedContent;
+            }
+
+            let authorProfile = undefined;
+            try {
+              const authorData = await contract.getUser(postData.author);
+              if (authorData.exists && authorData.profileIPFSHash) {
+                const fetchedProfile = await fetchProfileMetadata(authorData.profileIPFSHash);
+                if (fetchedProfile) authorProfile = fetchedProfile;
+              }
+            } catch (err) {
+              console.debug('Error fetching author profile:', err);
+            }
+
+            likedPosts.push({
+              id: postData.id,
+              author: postData.author,
+              contentIPFSHash: postData.contentIPFSHash,
+              timestamp: postData.timestamp,
+              likeCount: postData.likeCount,
+              totalRewards: postData.totalRewards,
+              isAd: postData.isAd,
+              exists: postData.exists,
+              content,
+              authorProfile,
+              hasLiked: true,
+            });
+          } catch (error) {
+            console.debug(`Error fetching liked post ${i}:`, error);
+          }
+        }
+
+        LocalCache.set(cacheKey, likedPosts);
+        return likedPosts;
+      } catch (error) {
+        console.error('Error fetching liked posts:', error);
         return [];
       }
     },

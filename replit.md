@@ -69,7 +69,9 @@ Preferred communication style: Simple, everyday language.
 
 **Development Tools**: Hardhat for contract compilation and deployment with ethers.js v6 for Web3 interactions.
 
-**Known Limitation**: Current smart contract uses dynamic arrays for followers, following, and posts which creates O(n) gas costs. This is acceptable for MVP testing (<100 users) but requires refactoring to mapping-based data structures for production deployment to achieve O(1) operations.
+**Known Limitations**: 
+1. Current smart contract uses dynamic arrays for followers, following, and posts which creates O(n) gas costs. This is acceptable for MVP testing (<100 users) but requires refactoring to mapping-based data structures for production deployment to achieve O(1) operations.
+2. **Liked Posts Feature**: The "Likes" tab in user profiles only checks the most recent 100 posts due to contract limitations. The smart contract stores likes as `mapping(uint256 => mapping(address => bool)) postLikes` which allows checking if a user liked a specific post, but doesn't provide a reverse index to get all posts a user has liked. The current implementation scans the most recent 100 posts, which works for MVP/testing but will miss older likes once there are >100 total posts. **Production Solution**: Either (a) modify the contract to add `getUserLikedPosts(address)` view function that returns an array of liked post IDs, or (b) implement a backend indexer that listens to PostLiked/PostUnliked events and maintains a per-user like history database.
 
 ### Backend Architecture
 

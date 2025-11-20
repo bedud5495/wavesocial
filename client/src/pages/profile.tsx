@@ -11,7 +11,7 @@ import { EditProfileDialog } from '@/components/profile/EditProfileDialog';
 import { BadgeCheck, Users, FileText, Coins, UserPlus, UserMinus, Pencil } from 'lucide-react';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { useSocialWave } from '@/hooks/web3/useSocialWave';
-import { useUser, useUserPosts, useIsFollowing } from '@/hooks/web3/useContractData';
+import { useUser, useUserPosts, useUserLikedPosts, useIsFollowing } from '@/hooks/web3/useContractData';
 
 export default function Profile() {
   const [, params] = useRoute('/profile/:address');
@@ -22,6 +22,7 @@ export default function Profile() {
 
   const { data: user, isLoading: isLoadingUser } = useUser(profileAddress);
   const { data: posts = [], isLoading: isLoadingPosts } = useUserPosts(profileAddress);
+  const { data: likedPosts = [], isLoading: isLoadingLikedPosts } = useUserLikedPosts(profileAddress, 100);
   const { data: isFollowingData = false, isLoading: isLoadingFollow } = useIsFollowing(profileAddress);
 
   const isOwnProfile = currentUserAddress?.toLowerCase() === profileAddress?.toLowerCase();
@@ -205,10 +206,36 @@ export default function Profile() {
             ))
           )}
         </TabsContent>
-        <TabsContent value="likes" className="mt-4">
-          <div className="text-center py-12 space-y-3">
-            <p className="text-muted-foreground">Liked posts will appear here</p>
-          </div>
+        <TabsContent value="likes" className="space-y-4 mt-4">
+          {isLoadingLikedPosts ? (
+            Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="space-y-3 p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ))
+          ) : likedPosts.length === 0 ? (
+            <div className="text-center py-12 space-y-3" data-testid="empty-liked-posts">
+              <p className="text-muted-foreground">No liked posts in the last 100 posts</p>
+              <p className="text-xs text-muted-foreground">Only recent posts are checked for likes</p>
+            </div>
+          ) : (
+            likedPosts.map((post) => (
+              <PostCard
+                key={post.id.toString()}
+                post={post}
+                onLike={handleLike}
+                onUnlike={handleUnlike}
+                isLiking={isTransacting}
+              />
+            ))
+          )}
         </TabsContent>
       </Tabs>
 
