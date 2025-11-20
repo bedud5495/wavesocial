@@ -10,6 +10,7 @@ import {
 import { useWeb3 } from '@/contexts/Web3Context';
 import { Link } from 'wouter';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { CONTRACT_ADDRESSES } from '@/lib/web3/config';
 import { 
   Coins, 
   Users, 
@@ -420,11 +421,11 @@ export default function Landing() {
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p className="font-mono break-all">
                     <span className="font-semibold">SocialWave:</span><br />
-                    {import.meta.env.VITE_SOCIAL_WAVE_ADDRESS || 'Not configured'}
+                    {CONTRACT_ADDRESSES.socialWave}
                   </p>
                   <p className="font-mono break-all">
                     <span className="font-semibold">SWAVE Token:</span><br />
-                    {import.meta.env.VITE_SWAVE_TOKEN_ADDRESS || 'Not configured'}
+                    {CONTRACT_ADDRESSES.swaveToken}
                   </p>
                 </div>
               </div>

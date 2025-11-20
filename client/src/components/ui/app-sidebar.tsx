@@ -15,6 +15,7 @@ import {
 import { WalletConnection } from '@/components/web3/WalletConnection';
 import { CreatePost } from '@/components/posts/CreatePost';
 import { useWeb3 } from '@/contexts/Web3Context';
+import { CONTRACT_ADDRESSES } from '@/lib/web3/config';
 
 const menuItems = [
   { title: 'Feed', icon: Home, url: '/feed' },
@@ -69,7 +70,7 @@ export function AppSidebar() {
         <div className="text-xs text-muted-foreground px-4">
           <p className="font-semibold">Contract Address:</p>
           <p className="font-mono break-all">
-            {import.meta.env.VITE_SOCIAL_WAVE_ADDRESS || 'Not configured'}
+            {CONTRACT_ADDRESSES.socialWave}
           </p>
         </div>
       </SidebarFooter>
