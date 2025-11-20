@@ -46,15 +46,16 @@ export function useUser(address: string | null | undefined) {
           profile,
         };
 
-        LocalCache.set(cacheKey, enrichedUser);
+        LocalCache.set(cacheKey, enrichedUser, 30000);
         return enrichedUser;
       } catch (error) {
-        // Silently handle RPC errors
+        console.debug('Error fetching user:', error);
         return null;
       }
     },
     enabled: !!contract && !!address,
     staleTime: 30000,
+    retry: 2,
   });
 }
 
@@ -63,7 +64,7 @@ export function usePost(postId: bigint | null | undefined) {
   const { address } = useWeb3();
 
   return useQuery({
-    queryKey: ['post', postId?.toString()],
+    queryKey: ['post', postId?.toString(), address],
     queryFn: async (): Promise<EnrichedPost | null> => {
       if (!contract || postId === null || postId === undefined) return null;
 
@@ -88,7 +89,7 @@ export function usePost(postId: bigint | null | undefined) {
             if (fetchedProfile) authorProfile = fetchedProfile;
           }
         } catch (err) {
-          // Silently handle
+          console.debug('Error fetching author profile:', err);
         }
 
         let hasLiked = false;
@@ -96,7 +97,7 @@ export function usePost(postId: bigint | null | undefined) {
           try {
             hasLiked = await contract.hasLikedPost(address, postId);
           } catch (err) {
-            // Silently handle
+            console.debug('Error checking like status:', err);
           }
         }
 
@@ -114,12 +115,13 @@ export function usePost(postId: bigint | null | undefined) {
           hasLiked,
         };
       } catch (error) {
-        // Silently handle RPC errors
+        console.debug('Error fetching post:', error);
         return null;
       }
     },
     enabled: !!contract && postId !== null && postId !== undefined,
     staleTime: 30000,
+    retry: 2,
   });
 }
 
@@ -128,11 +130,11 @@ export function usePosts(startId: number = 0, limit: number = 50) {
   const { address } = useWeb3();
 
   return useQuery({
-    queryKey: ['posts', startId, limit],
+    queryKey: ['posts', startId, limit, address],
     queryFn: async (): Promise<EnrichedPost[]> => {
       if (!contract) return [];
 
-      const cacheKey = `posts_${startId}_${limit}`;
+      const cacheKey = `posts_${startId}_${limit}_${address || 'no-address'}`;
       const cached = LocalCache.get<EnrichedPost[]>(cacheKey);
       if (cached) {
         return cached;
@@ -172,15 +174,16 @@ export function usePosts(startId: number = 0, limit: number = 50) {
                 if (fetchedProfile) authorProfile = fetchedProfile;
               }
             } catch (err) {
-              // Silently handle
+              console.debug('Error fetching author profile:', err);
             }
 
             let hasLiked = false;
             if (address) {
               try {
-                hasLiked = await contract.hasLikedPost(BigInt(i), address);
+                // Fixed parameter order
+                hasLiked = await contract.hasLikedPost(address, BigInt(i));
               } catch (err) {
-                // Silently handle
+                console.debug('Error checking like status:', err);
               }
             }
 
@@ -198,19 +201,20 @@ export function usePosts(startId: number = 0, limit: number = 50) {
               hasLiked,
             });
           } catch (error) {
-            // Silently handle - continue fetching other posts
+            console.debug(`Error fetching post ${i}:`, error);
           }
         }
 
-        LocalCache.set(cacheKey, posts);
+        LocalCache.set(cacheKey, posts, 30000);
         return posts;
       } catch (error) {
-        // Silently handle RPC errors
+        console.error('Error fetching posts:', error);
         return [];
       }
     },
     enabled: !!contract,
     staleTime: 30000,
+    retry: 2,
   });
 }
 
@@ -219,7 +223,7 @@ export function useUserPosts(userAddress: string | null | undefined) {
   const { address: currentUser } = useWeb3();
 
   return useQuery({
-    queryKey: ['userPosts', userAddress],
+    queryKey: ['userPosts', userAddress, currentUser],
     queryFn: async (): Promise<EnrichedPost[]> => {
       if (!contract || !userAddress) return [];
 
@@ -234,7 +238,7 @@ export function useUserPosts(userAddress: string | null | undefined) {
         
         const posts: EnrichedPost[] = [];
         
-        for (let i = totalPosts - 1; i >= 0; i--) {
+        for (let i = totalPosts; i >= 1; i--) {
           try {
             const postData = await contract.getPost(BigInt(i));
             
@@ -255,15 +259,16 @@ export function useUserPosts(userAddress: string | null | undefined) {
                 if (fetchedProfile) authorProfile = fetchedProfile;
               }
             } catch (err) {
-              // Silently handle
+              console.debug('Error fetching author profile:', err);
             }
 
             let hasLiked = false;
             if (currentUser) {
               try {
-                hasLiked = await contract.hasLikedPost(BigInt(i), currentUser);
+                // Fixed parameter order
+                hasLiked = await contract.hasLikedPost(currentUser, BigInt(i));
               } catch (err) {
-                // Silently handle
+                console.debug('Error checking like status:', err);
               }
             }
 
@@ -283,18 +288,19 @@ export function useUserPosts(userAddress: string | null | undefined) {
 
             if (posts.length >= userPostCount) break;
           } catch (error) {
-            // Silently handle - continue fetching other posts
+            console.debug(`Error fetching user post ${i}:`, error);
           }
         }
 
         return posts;
       } catch (error) {
-        // Silently handle RPC errors
+        console.error('Error fetching user posts:', error);
         return [];
       }
     },
     enabled: !!contract && !!userAddress,
     staleTime: 30000,
+    retry: 2,
   });
 }
 
@@ -310,11 +316,12 @@ export function useIsFollowing(targetAddress: string | null | undefined) {
       try {
         return await contract.isFollowing(address, targetAddress);
       } catch (error) {
-        // Silently handle RPC errors
+        console.debug('Error checking follow status:', error);
         return false;
       }
     },
     enabled: !!contract && !!address && !!targetAddress && address.toLowerCase() !== targetAddress.toLowerCase(),
     staleTime: 30000,
+    retry: 2,
   });
 }
