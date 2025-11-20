@@ -1,25 +1,47 @@
 import { useState, useCallback } from 'react';
-import { Post } from '@/types';
+import type { EnrichedPost } from '@shared/schema';
 import { useLocalCache } from './useLocalCache';
 
+// Extended type for optimistic posts with tempId
+type OptimisticPost = EnrichedPost & {
+  tempId?: string;
+};
+
+type PostInput = {
+  content: string;
+  images?: string[];
+  mediaTypes?: string[];
+  isAd?: boolean;
+  author?: string;
+  authorProfile?: any;
+};
+
 export const useOptimisticUpdates = () => {
-  const [optimisticPosts, setOptimisticPosts] = useState<Post[]>([]);
+  const [optimisticPosts, setOptimisticPosts] = useState<OptimisticPost[]>([]);
   const [pendingActions, setPendingActions] = useState<Set<string>>(new Set());
   const { getPosts, savePosts, addPendingAction } = useLocalCache();
 
   const generateTempId = () => `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const addOptimisticPost = useCallback((postData: Partial<Post> & { content: string }) => {
-    const tempPost: Post = {
+  const addOptimisticPost = useCallback((postData: PostInput) => {
+    const tempPost: OptimisticPost = {
       id: BigInt(0), // Will be replaced with real ID
       author: postData.author || '0x',
-      content: postData.content,
-      images: postData.images || [],
-      likes: 0,
+      contentIPFSHash: '',
+      timestamp: BigInt(Math.floor(Date.now() / 1000)),
+      likeCount: BigInt(0),
+      totalRewards: BigInt(0),
       isAd: postData.isAd || false,
-      timestamp: Math.floor(Date.now() / 1000),
-      liked: false,
+      exists: true,
+      content: {
+        text: postData.content,
+        images: postData.images || [],
+        mediaTypes: postData.mediaTypes || [],
+        createdAt: Date.now(),
+        authorAddress: postData.author || '0x'
+      },
       authorProfile: postData.authorProfile,
+      hasLiked: false,
       tempId: generateTempId()
     };
 
@@ -30,7 +52,7 @@ export const useOptimisticUpdates = () => {
     });
 
     const actionId = generateTempId();
-    setPendingActions(prev => new Set([...prev, actionId]));
+    setPendingActions(prev => new Set([...Array.from(prev), actionId]));
     addPendingAction({
       type: 'CREATE_POST',
       id: actionId,
@@ -50,8 +72,8 @@ export const useOptimisticUpdates = () => {
         if (post.id === postId || post.tempId?.includes(postId.toString())) {
           return {
             ...post,
-            likes: post.likes + (like ? 1 : -1),
-            liked: like
+            likeCount: post.likeCount + BigInt(like ? 1 : -1),
+            hasLiked: like
           };
         }
         return post;
@@ -63,8 +85,8 @@ export const useOptimisticUpdates = () => {
         if (post.id === postId) {
           return {
             ...post,
-            likes: post.likes + (like ? 1 : -1),
-            liked: like
+            likeCount: post.likeCount + BigInt(like ? 1 : -1),
+            hasLiked: like
           };
         }
         return post;
@@ -74,7 +96,7 @@ export const useOptimisticUpdates = () => {
       return newPosts;
     });
 
-    setPendingActions(prev => new Set([...prev, actionId]));
+    setPendingActions(prev => new Set([...Array.from(prev), actionId]));
     addPendingAction({
       type: like ? 'LIKE_POST' : 'UNLIKE_POST',
       id: actionId,
@@ -93,7 +115,7 @@ export const useOptimisticUpdates = () => {
     });
   }, []);
 
-  const resolveTempPost = useCallback((tempId: string, realPost: Post) => {
+  const resolveTempPost = useCallback((tempId: string, realPost: OptimisticPost) => {
     setOptimisticPosts(prev => {
       const newPosts = prev.filter(post => post.tempId !== tempId);
       savePosts([realPost, ...newPosts, ...getPosts()]);
@@ -101,7 +123,7 @@ export const useOptimisticUpdates = () => {
     });
   }, [getPosts, savePosts]);
 
-  const getMergedPosts = useCallback((realPosts: Post[]): Post[] => {
+  const getMergedPosts = useCallback((realPosts: EnrichedPost[]): OptimisticPost[] => {
     const cachedPosts = getPosts();
     const allRealPosts = [...realPosts, ...cachedPosts];
     

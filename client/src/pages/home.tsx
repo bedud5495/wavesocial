@@ -10,8 +10,13 @@ import { queryClient } from '@/lib/queryClient';
 import { useLocalCache } from '@/hooks/useLocalCache';
 import { useOptimisticUpdates } from '@/hooks/useOptimisticUpdates';
 import { useBackgroundSync } from '@/hooks/useBackgroundSync';
-import { Post } from '@/types';
+import type { EnrichedPost } from '@shared/schema';
 import { useEffect, useState, useMemo } from 'react';
+
+// Extended type for posts with tempId
+type OptimisticPost = EnrichedPost & {
+  tempId?: string;
+};
 
 export default function Home() {
   const { data: posts = [], isLoading, error, refetch } = usePosts(0, 20);
@@ -19,7 +24,7 @@ export default function Home() {
   const { isConnected, address } = useWeb3();
   
   // Enhanced hooks
-  const { getPosts: getCachedPosts, savePosts: saveToCache, clearCache } = useLocalCache();
+  const { getPosts: getCachedPosts, savePosts: saveToCache } = useLocalCache();
   const {
     addOptimisticPost,
     addOptimisticLike,
@@ -29,7 +34,7 @@ export default function Home() {
     hasPendingActions
   } = useOptimisticUpdates();
 
-  const [mergedPosts, setMergedPosts] = useState<Post[]>([]);
+  const [mergedPosts, setMergedPosts] = useState<OptimisticPost[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   // Background sync (polling-based as fallback)
@@ -151,39 +156,33 @@ export default function Home() {
     }
   };
 
-  const handleCreatePost = async (content: string, images: string[], isAd: boolean) => {
+  const handleCreatePost = async (content: string, images: string[], mediaTypes: string[], isAd: boolean) => {
     const { tempId, actionId } = addOptimisticPost({
       content,
       images,
+      mediaTypes,
       isAd,
-      author: address,
-      timestamp: Math.floor(Date.now() / 1000)
+      author: address
     });
 
     try {
-      const result = await createPost(content, images, isAd);
+      await createPost(content, images, mediaTypes, isAd);
+      
+      // Remove the optimistic post after successful creation
+      // The refetch will load the real post from the blockchain
       resolveOptimisticUpdate(actionId);
       
-      // If your createPost returns the new post ID, use it to resolve the temp post
-      if (result?.postId) {
-        // You might need to fetch the complete post data here
-        const newPost: Post = {
-          id: result.postId,
-          author: address!,
-          content,
-          images,
-          isAd,
-          likes: 0,
-          timestamp: Math.floor(Date.now() / 1000),
-          liked: false
-        };
-        resolveTempPost(tempId, newPost);
-      }
+      // Clear the temp post immediately to avoid duplicates
+      setMergedPosts(prev => prev.filter(p => p.tempId !== tempId));
       
+      // Refetch to get the real post data
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      await refetch();
     } catch (error) {
       console.error('Error creating post:', error);
+      // Remove the optimistic post on error
       resolveOptimisticUpdate(actionId);
+      setMergedPosts(prev => prev.filter(p => p.tempId !== tempId));
       throw error;
     }
   };

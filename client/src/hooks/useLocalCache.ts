@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Post } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import type { EnrichedPost } from '@shared/schema';
 
 const CACHE_KEYS = {
   POSTS: 'socialwave_posts',
@@ -32,7 +32,7 @@ export const useLocalCache = () => {
     setIsClient(true);
   }, []);
 
-  const getPosts = (): Post[] => {
+  const getPosts = useCallback((): EnrichedPost[] => {
     if (!isClient) return [];
     try {
       const cached = localStorage.getItem(CACHE_KEYS.POSTS);
@@ -41,9 +41,9 @@ export const useLocalCache = () => {
       console.error('Failed to parse cached posts:', error);
       return [];
     }
-  };
+  }, [isClient]);
 
-  const savePosts = (posts: Post[]) => {
+  const savePosts = useCallback((posts: EnrichedPost[]) => {
     if (!isClient) return;
     try {
       // Convert BigInt values to strings for serialization
@@ -51,7 +51,6 @@ export const useLocalCache = () => {
         ...post,
         id: typeof post.id === 'bigint' ? post.id.toString() : post.id,
         timestamp: typeof post.timestamp === 'bigint' ? post.timestamp.toString() : post.timestamp,
-        likes: typeof post.likes === 'bigint' ? post.likes.toString() : post.likes,
         likeCount: typeof post.likeCount === 'bigint' ? post.likeCount.toString() : post.likeCount,
         totalRewards: typeof post.totalRewards === 'bigint' ? post.totalRewards.toString() : post.totalRewards,
         // Handle any other BigInt fields that might exist
@@ -62,7 +61,7 @@ export const useLocalCache = () => {
     } catch (error) {
       console.error('Failed to save posts to cache:', error);
     }
-  };
+  }, [isClient]);
 
   const getPendingActions = (): any[] => {
     if (!isClient) return [];
