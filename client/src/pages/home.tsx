@@ -2,7 +2,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { CreatePost } from '@/components/posts/CreatePost';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useSocialWave } from '@/hooks/web3/useSocialWave';
 import { usePosts } from '@/hooks/web3/useContractData';
 import { useWeb3 } from '@/contexts/Web3Context';
@@ -10,7 +10,6 @@ import { queryClient } from '@/lib/queryClient';
 import { useLocalCache } from '@/hooks/useLocalCache';
 import { useOptimisticUpdates } from '@/hooks/useOptimisticUpdates';
 import { useBackgroundSync } from '@/hooks/useBackgroundSync';
-import { useWebSocketSync } from '@/hooks/useWebSocketSync';
 import { Post } from '@/types';
 import { useEffect, useState, useMemo } from 'react';
 
@@ -33,7 +32,7 @@ export default function Home() {
   const [mergedPosts, setMergedPosts] = useState<Post[]>([]);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
 
-  // Background sync
+  // Background sync (polling-based as fallback)
   useBackgroundSync({
     refetch,
     enabled: isConnected,
@@ -41,24 +40,6 @@ export default function Home() {
     onFocus: true,
     onVisibilityChange: true
   });
-
-  // WebSocket for real-time updates (if your backend supports it)
-  const { isConnected: isWsConnected } = useWebSocketSync(
-    'wss://your-backend.com/ws',
-    (message) => {
-      switch (message.type) {
-        case 'NEW_POST':
-          handleNewPostFromWS(message.data);
-          break;
-        case 'POST_LIKED':
-          handleLikeFromWS(message.data);
-          break;
-        case 'POST_UPDATED':
-          handlePostUpdateFromWS(message.data);
-          break;
-      }
-    }
-  );
 
   // Improved deduplication logic
   const deduplicatedPosts = useMemo(() => {
@@ -138,43 +119,6 @@ export default function Home() {
       setIsFirstLoad(false);
     }
   }, [isLoading, posts, isFirstLoad, getMergedPosts, getCachedPosts, saveToCache]);
-
-  const handleNewPostFromWS = (postData: Post) => {
-    // Check if we already have this post (from optimistic update)
-    const existingTempPost = mergedPosts.find(p => 
-      p.tempId && p.content === postData.content && p.author === postData.author
-    );
-
-    if (existingTempPost) {
-      resolveTempPost(existingTempPost.tempId!, postData);
-    } else {
-      // Add new post from WebSocket and remove from cache if it exists there
-      const cachedPosts = getCachedPosts();
-      const updatedCachedPosts = cachedPosts.filter(p => p.id.toString() !== postData.id.toString());
-      saveToCache([postData, ...updatedCachedPosts]);
-      
-      setMergedPosts(prev => {
-        const filtered = prev.filter(p => p.id.toString() !== postData.id.toString());
-        return [postData, ...filtered];
-      });
-    }
-  };
-
-  const handleLikeFromWS = ({ postId, likes, liked }: { postId: bigint; likes: number; liked: boolean }) => {
-    setMergedPosts(prev => 
-      prev.map(post => 
-        post.id === postId ? { ...post, likes, liked } : post
-      )
-    );
-  };
-
-  const handlePostUpdateFromWS = (updatedPost: Post) => {
-    setMergedPosts(prev => 
-      prev.map(post => 
-        post.id === updatedPost.id ? updatedPost : post
-      )
-    );
-  };
 
   const handleLike = async (postId: bigint) => {
     const actionId = addOptimisticLike(postId, true);
@@ -258,11 +202,6 @@ export default function Home() {
         <div className="flex items-center gap-2">
           {/* Connection status */}
           <div className="flex items-center gap-1 text-xs">
-            {isWsConnected ? (
-              <Wifi className="h-3 w-3 text-green-500" />
-            ) : (
-              <WifiOff className="h-3 w-3 text-yellow-500" />
-            )}
             {hasPendingActions && (
               <span className="text-yellow-500">Syncing...</span>
             )}
